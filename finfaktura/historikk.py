@@ -8,7 +8,7 @@
 # $Id$
 ###########################################################################
 
-import fakturakomponenter
+from . import fakturakomponenter
 import types, sys, time
 import logging
 
@@ -44,7 +44,7 @@ class historiskHandling:
         return True
 
     def finnHandling(self, navn):
-        assert type(navn) in types.StringTypes
+        assert type(navn) in (str,)
         self.c.execute('SELECT ID FROM Handling WHERE navn=?', (navn,))
         return fakturaHandling(self.db, self.c.fetchone()[0], navn)
 

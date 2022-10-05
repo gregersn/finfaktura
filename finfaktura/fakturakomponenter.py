@@ -20,7 +20,7 @@ except ImportError:
 
 from PyQt4 import QtCore
 
-from fakturafeil import *
+from .fakturafeil import *
 
 PDFVIS = "/usr/bin/xdg-open"
 
@@ -45,8 +45,8 @@ class fakturaKomponent:
         #logging.debug("__getattr__: %s" % (egenskap))
         if not self._sqlExists: #tabellen finnes ikke i databasen
             return None
-        if not self._egenskaper.has_key(egenskap):
-            raise AttributeError(u"%s har ikke egenskapen %s" % (self.__class__, egenskap))
+        if egenskap not in self._egenskaper:
+            raise AttributeError("%s har ikke egenskapen %s" % (self.__class__, egenskap))
         if egenskap in self._egenskaperAldriCache:
             self.hentEgenskaper()
         #logging.debug("__getattr__:2: %s" % type(self._egenskaper[egenskap]))
@@ -56,13 +56,13 @@ class fakturaKomponent:
         #logging.debug("__setattr__: %s  " % (egenskap))
         #logging.debug("__setattr__: %s = %s " % (egenskap, verdi))
         origverdi = verdi
-        if self._egenskaper.has_key(egenskap): # denne egenskapen skal lagres i databasen
+        if egenskap in self._egenskaper: # denne egenskapen skal lagres i databasen
             if type(verdi) == bool:
                 verdi = int(verdi) # lagrer bool som int: 0 | 1
             elif type(verdi) == buffer and len(verdi) == 0:
                 verdi = ''
             elif type(verdi) == QtCore.QString:
-                verdi = unicode(verdi)
+                verdi = str(verdi)
             self.oppdaterEgenskap(egenskap, verdi) # oppdater databasen
         self.__dict__[egenskap] = verdi # oppdater lokalt for objektet
 
@@ -71,7 +71,7 @@ class fakturaKomponent:
             self.c.execute("SELECT * FROM %s LIMIT 1" % self._tabellnavn)
         except sqlite.OperationalError:
             raise
-        self._egenskaperListe = map(lambda z: z[0], self.c.description)
+        self._egenskaperListe = [z[0] for z in self.c.description]
         r = {}
         for z in self._egenskaperListe:
             r.update({z:None})
@@ -84,10 +84,10 @@ class fakturaKomponent:
         #logging.debug("SELECT * FROM %s WHERE ID=?" % self._tabellnavn, (self._id,))
         self.c.execute("SELECT * FROM %s WHERE ID=?" % self._tabellnavn, (self._id,))
         r = self.c.fetchone()
-        if r is None: raise DBTomFeil(u'Det finnes ingen %s med ID %s' % (self._tabellnavn, self._id))
-        for z in self._egenskaper.keys():
+        if r is None: raise DBTomFeil('Det finnes ingen %s med ID %s' % (self._tabellnavn, self._id))
+        for z in list(self._egenskaper.keys()):
             try:verdi = r[self._egenskaperListe.index(z)]
-            except TypeError: print self._tabellnavn, self._id, z, self._egenskaperListe.index(z),r
+            except TypeError: print(self._tabellnavn, self._id, z, self._egenskaperListe.index(z),r)
 
             self._egenskaper.update({z:r[self._egenskaperListe.index(z)]})
             self._egenskaper[z] = verdi
@@ -139,7 +139,7 @@ class fakturaKunde(fakturaKomponent):
                     "%(adresse)s \n"\
                     "%(postnummer)s %(poststed)s" % e #(self._egenskaper)
         except TypeError:
-            raise KundeFeil(u"Kundeinfo ikke korrekt utfylt")
+            raise KundeFeil("Kundeinfo ikke korrekt utfylt")
 
     def epostadresse(self):
         "Gir en korrekt epostadresse"
@@ -152,7 +152,7 @@ class fakturaKunde(fakturaKomponent):
         else: self.slettet = False
 
     def finnOrdrer(self):
-        u'Finner alle gyldige ordrer tilhørende denne kunden'
+        'Finner alle gyldige ordrer tilhørende denne kunden'
         #Finn alle id-ene først
         self.c.execute('SELECT ID FROM %s WHERE kundeID=? AND kansellert=0 ORDER BY ordredato ASC' % fakturaOrdre._tabellnavn, (self._id,))
         return [fakturaOrdre(self.db, kunde=self, Id=i[0]) for i in self.c.fetchall()]
@@ -162,10 +162,10 @@ class fakturaVare(fakturaKomponent):
     _tabellnavn = "Vare"
 
     def __str__(self):
-        return unicode("%s: %.2f kr (%s %% mva)" % (self.navn, self.helstDesimal(self.pris), self.mva))
+        return str("%s: %.2f kr (%s %% mva)" % (self.navn, self.helstDesimal(self.pris), self.mva))
 
     def __repr__(self):
-        return unicode("%s, vare # %s" % (self.navn, self._id))
+        return str("%s, vare # %s" % (self.navn, self._id))
 
     def settSlettet(self, erSlettet=True):
         logging.debug("sletter vare? %s", self._id)
@@ -173,13 +173,13 @@ class fakturaVare(fakturaKomponent):
         else: self.slettet = False
 
     def finnKjopere(self):
-        u"Finner hvem som har kjøpt denne varen, returnerer liste av fakturaKunde"
+        "Finner hvem som har kjøpt denne varen, returnerer liste av fakturaKunde"
         sql='SELECT DISTINCT kundeID FROM Ordrehode INNER JOIN Ordrelinje ON Ordrehode.ID=Ordrelinje.ordrehodeID WHERE kansellert=0 AND vareID=?'
         self.c.execute(sql, (self._id,))
         return [fakturaKunde(self.db, Id=i[0]) for i in self.c.fetchall()]
 
     def finnTotalsalg(self):
-        u'Finner det totale salgsbeløpet (eks mva) for denne varen'
+        'Finner det totale salgsbeløpet (eks mva) for denne varen'
         self.c.execute('SELECT SUM(kvantum*enhetspris) FROM Ordrelinje INNER JOIN Ordrehode ON Ordrelinje.ordrehodeID=Ordrehode.ID WHERE kansellert=0 AND vareID=?', (self._id,))
         try:
             return self.c.fetchone()[0]
@@ -187,7 +187,7 @@ class fakturaVare(fakturaKomponent):
             return 0.0
 
     def finnAntallSalg(self):
-        u'Finner det totale antallet salg denne varen har gjort'
+        'Finner det totale antallet salg denne varen har gjort'
         self.c.execute('SELECT COUNT(*) FROM Ordrelinje INNER JOIN Ordrehode ON Ordrelinje.ordrehodeID=Ordrehode.ID WHERE kansellert=0 AND vareID=?', (self._id,))
         try:
             return self.c.fetchone()[0]
@@ -195,7 +195,7 @@ class fakturaVare(fakturaKomponent):
             return 0
 
     def finnSisteSalg(self):
-        u'Finner det siste salg denne varen har var med i'
+        'Finner det siste salg denne varen har var med i'
         self.c.execute('SELECT Ordrehode.ID FROM Ordrehode INNER JOIN Ordrelinje ON Ordrehode.ID=Ordrelinje.ordrehodeID WHERE kansellert=0 AND vareID=? ORDER BY ordredato DESC LIMIT 1', (self._id,))
         try:
             return fakturaOrdre(self.db, Id=self.c.fetchone()[0])
@@ -224,8 +224,8 @@ class fakturaOrdre(fakturaKomponent):
         if self.linje:
             s += "\n"
             for ordre in self.linje:
-                s += " o #%i: %s \n" % (ordre._id, unicode(ordre))
-        return unicode(s)
+                s += " o #%i: %s \n" % (ordre._id, str(ordre))
+        return str(s)
 
     def nyId(self):
         if not hasattr(self, 'ordredato'):
@@ -243,7 +243,7 @@ class fakturaOrdre(fakturaKomponent):
     def finnVarer(self):
         self.linje = []
         self.c.execute("SELECT ID FROM %s WHERE ordrehodeID=?" % fakturaOrdrelinje._tabellnavn, (self._id,))
-        for linjeID in map(lambda x:x[0], self.c.fetchall()):
+        for linjeID in [x[0] for x in self.c.fetchall()]:
             o = fakturaOrdrelinje(self.db, self, Id=linjeID)
             self.linje.append(o)
 
@@ -300,8 +300,8 @@ class fakturaOrdre(fakturaKomponent):
                                                                  fakturatype,
                                                                  self.kunde.navn.replace(" ", "_").replace("/", "_"),
                                                                  time.strftime("%Y-%m-%d")))
-        logging.debug('lagFilnavn ble til %s', unicode(n))
-        return unicode(n)
+        logging.debug('lagFilnavn ble til %s', str(n))
+        return str(n)
 
     def forfalt(self):
         "forfalt() -> Bool. Er fakturaen forfalt (og ikke betalt)?"
@@ -337,7 +337,7 @@ class fakturaOrdrelinje(fakturaKomponent):
         pass
 
     def detaljertBeskrivelse(self):
-        return unicode("%03d %s: %s %s a kr %2.2f (%s%% mva)" % (self.vare.ID, self.vare.navn, self.kvantum, self.vare.enhet, self.enhetspris, self.mva))
+        return str("%03d %s: %s %s a kr %2.2f (%s%% mva)" % (self.vare.ID, self.vare.navn, self.kvantum, self.vare.enhet, self.enhetspris, self.mva))
 
 class fakturaFirmainfo(fakturaKomponent):
     _tabellnavn = "Firma"
@@ -357,7 +357,7 @@ class fakturaFirmainfo(fakturaKomponent):
             self.hentEgenskaper()
 
     def __str__(self):
-        return u"""
+        return """
       == FIRMA: %(firmanavn)s ==
       Kontakt : %(kontaktperson)s
       Adresse : %(adresse)s, %(postnummer)04i %(poststed)s
@@ -386,7 +386,7 @@ class fakturaFirmainfo(fakturaKomponent):
     def sjekkData(self):
         sjekk = ["firmanavn", "kontaktperson", "adresse", "postnummer", "poststed", "kontonummer", "epost"]
         mangler = [felt for felt in sjekk if not getattr(self, felt)]
-        if mangler: raise FirmainfoFeil(u"Følgende felt er ikke fylt ut: %s" % join(mangler, ", "))
+        if mangler: raise FirmainfoFeil("Følgende felt er ikke fylt ut: %s" % join(mangler, ", "))
 
 class fakturaOppsett(fakturaKomponent):
     _tabellnavn = "Oppsett"
@@ -416,10 +416,10 @@ class fakturaOppsett(fakturaKomponent):
                 mangler.append( obj )
         # hvis alle strukturene mangler, er det en tom (ny) fil
         if datastrukturer == mangler:
-            raise DBNyFeil(u"Databasen er ikke bygget opp")
+            raise DBNyFeil("Databasen er ikke bygget opp")
         elif mangler: #noen av strukturene mangler, dette er en gammel fil
             if versjonsjekk:
-                raise DBGammelFeil(u"Databasen er gammel eller korrupt, følgende felt mangler: %s" %  ",".join([o._tabellnavn for o in mangler]))
+                raise DBGammelFeil("Databasen er gammel eller korrupt, følgende felt mangler: %s" %  ",".join([o._tabellnavn for o in mangler]))
 
         try:
             fakturaKomponent.__init__(self, db, Id=self._id)
@@ -435,20 +435,20 @@ class fakturaOppsett(fakturaKomponent):
             # tabellen finnes ikke
             self._sqlExists = False
             if versjonsjekk:
-                raise DBGammelFeil(u"Databasen mangler tabellen '%s'" % self._tabellnavn)
+                raise DBGammelFeil("Databasen mangler tabellen '%s'" % self._tabellnavn)
 
         if not versjonsjekk: return
 
         logging.debug("sjekker versjon")
         logging.debug("arkivet er %s, siste er %s", self.databaseversjon, self.apiversjon)
         if self.databaseversjon != self.apiversjon:
-            raise DBGammelFeil(u"Databasen er versjon %s og må oppgraderes til %s" % (self.databaseversjon, self.apiversjon))
+            raise DBGammelFeil("Databasen er versjon %s og må oppgraderes til %s" % (self.databaseversjon, self.apiversjon))
 
     def nyId(self):
         pass
 
     def migrerDatabase(self, nydb, sqlFil):
-        from oppgradering import oppgradering
+        from .oppgradering import oppgradering
         db = lagDatabase(nydb, sqlFil)
         # hva nå?
 
@@ -472,19 +472,19 @@ class fakturaSikkerhetskopi(fakturaKomponent):
             db.commit()
             Id = c.lastrowid
             fakturaKomponent.__init__(self, db, Id)
-            from f60 import f60
+            from .f60 import f60
             spdf = f60(filnavn=None)
             spdf.settFakturainfo(ordre._id, ordre.ordredato, ordre.forfall, ordre.tekst)
             spdf.settFirmainfo(ordre.firma._egenskaper)
             try:
                 spdf.settKundeinfo(ordre.kunde._id, ordre.kunde.postadresse())
-            except KundeFeil, e:
-                raise FakturaFeil(u"Kunne ikke lage PDF! %s" % e)
+            except KundeFeil as e:
+                raise FakturaFeil("Kunne ikke lage PDF! %s" % e)
 
             spdf.settOrdrelinje(ordre.hentOrdrelinje)
             res = spdf.lagKvittering()
             if not res:
-                raise FakturaFeil(u"Kunne ikke lage PDF! ('%s')" % spdf.filnavn)
+                raise FakturaFeil("Kunne ikke lage PDF! ('%s')" % spdf.filnavn)
 
             self.data = pdfType(spdf.data())
 
@@ -516,7 +516,7 @@ class fakturaSikkerhetskopi(fakturaKomponent):
 
     def vis(self, program=PDFVIS):
         "Dersom program inneholder %s vil den bli erstattet med filnavnet, ellers lagt til etter program"
-        logging.debug(u'Åpner sikkerhetskopi #%i med programmet "%s"', self._id, program)
+        logging.debug('Åpner sikkerhetskopi #%i med programmet "%s"', self._id, program)
         p = program.encode(sys.getfilesystemencoding()) # subprocess.call på windows takler ikke unicode!
         f = self.lagFil().encode(sys.getfilesystemencoding())
         if '%s' in program:

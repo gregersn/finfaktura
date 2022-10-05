@@ -48,7 +48,7 @@ class nummersetter(object):
     return ret
 
   def settFakturanummer(self, databasenavn, fakturanummer):
-    logging.debug(u"Skal sette fakturanr %s på db %s", fakturanummer, databasenavn)
+    logging.debug("Skal sette fakturanr %s på db %s", fakturanummer, databasenavn)
     if not os.path.exists(databasenavn): return False
     db = sqlite3.connect(databasenavn)
     cursor = db.cursor()
@@ -90,15 +90,15 @@ class nummersettergui(object):
 
   def slotDatabaseValgt(self, s):
     logging.debug('valgte database: %s', s)
-    filename = unicode(s, sys.getfilesystemencoding())
+    filename = str(s, sys.getfilesystemencoding())
     if filename == '...':
       f = self.velgDatabase()
       self.gui.databasenavn.insertItem(-1, f)
-      filename = unicode(f, sys.getfilesystemencoding())
+      filename = str(f, sys.getfilesystemencoding())
     self.visDatabaseStatus()
 
   def visDatabaseStatus(self):
-    status = self.help.lesDBInfo(unicode(self.gui.databasenavn.currentText()))
+    status = self.help.lesDBInfo(str(self.gui.databasenavn.currentText()))
     logging.debug('status:%s', status)
     if not status:
       return False
@@ -106,13 +106,13 @@ class nummersettergui(object):
     self.gui.detaljerFirmanavn.setText(status['firmanavn'])
     self.gui.detaljerFakturaer.setText(str(status['fakturaer']))
     self.gui.detaljerEndretDato.setText(strftime('%Y-%m-%d %H:%M:%S', localtime(status['endret'])))
-    self.gui.detaljerStatus.setText({True:u'<b>Klar til å endres</b>', False:'<b>Kan ikke endres</b>'}[status['status']])
+    self.gui.detaljerStatus.setText({True:'<b>Klar til å endres</b>', False:'<b>Kan ikke endres</b>'}[status['status']])
     self.gui.handlingsBoks.setEnabled(status['status'])
 
   def velgDatabase(self):
     f = QtGui.QFileDialog.getOpenFileName(self.gui,
-                                          u'Velg database',
-                                          unicode(os.getenv('HOME', '.'), sys.getfilesystemencoding()),
+                                          'Velg database',
+                                          str(os.getenv('HOME', '.'), sys.getfilesystemencoding()),
                                           "Databasefil (*.db)")
     logging.debug('valgte fil: %s', f)
     return f
@@ -121,18 +121,18 @@ class nummersettergui(object):
     fnr = self.gui.fakturanummer.value()
     logging.debug('Frste fakturanummer skal være %s', repr(fnr))
     if fnr < 1:
-      QtGui.QMessageBox.critical(self.gui, u"Feil fakturanummer", u"Du må sette første fakturanummer (nummeret du ønsker at din første faktura skal få)")
+      QtGui.QMessageBox.critical(self.gui, "Feil fakturanummer", "Du må sette første fakturanummer (nummeret du ønsker at din første faktura skal få)")
       return False
     click = QtGui.QMessageBox.warning(self.gui,
-                                     u"Sette fakturanummer?",
-                                     u"Advarsel! \nDu er nå i ferd med å endre fakturadatabasen, slik at neste faktura får løpenummer %s. Dette kan ikke endres senere! \n\nEr du sikker? (Hvis du er i tvil, velg 'Nei/No')" % fnr,
+                                     "Sette fakturanummer?",
+                                     "Advarsel! \nDu er nå i ferd med å endre fakturadatabasen, slik at neste faktura får løpenummer %s. Dette kan ikke endres senere! \n\nEr du sikker? (Hvis du er i tvil, velg 'Nei/No')" % fnr,
                                      QtGui.QMessageBox.Yes | QtGui.QMessageBox.No,
                                      QtGui.QMessageBox.No)
     logging.debug('vil gjøre %s', click)
     if click == QtGui.QMessageBox.Yes:
       logging.debug('ja')
-      if self.help.settFakturanummer(unicode(self.gui.databasenavn.currentText()), fnr-1):
-        QtGui.QMessageBox.information(self.gui, "Fakturanummer endret", u"Endret fakturanummer. Nå får neste faktura nummer %s" % fnr)
+      if self.help.settFakturanummer(str(self.gui.databasenavn.currentText()), fnr-1):
+        QtGui.QMessageBox.information(self.gui, "Fakturanummer endret", "Endret fakturanummer. Nå får neste faktura nummer %s" % fnr)
 
 if __name__ == '__main__':
   if '-d' in sys.argv:

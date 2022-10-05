@@ -37,19 +37,19 @@ class epost:
     vedlegg = []
 
     def faktura(self, ordre, pdfFilnavn, tekst=None, fra=None, testmelding=False):
-        if not type(pdfFilnavn) in types.StringTypes:
-            raise UgyldigVerdi(u'pdfFilnavn skal være tekst (ikke "%s")' % type(pdfFilnavn))
+        if not type(pdfFilnavn) in (str,):
+            raise UgyldigVerdi('pdfFilnavn skal være tekst (ikke "%s")' % type(pdfFilnavn))
         self.ordre = ordre
         self.pdfFilnavn = pdfFilnavn
         if fra is None: fra = ordre.firma.epost
         self.fra = fra
         self.til = ordre.kunde.epost
-        self.tittel = u"Epostfaktura fra %s: '%s' (#%i)" % (ordre.firma.firmanavn, self.kutt(ordre.tekst), ordre.ID)
-        if tekst is None: tekst = u'Vedlagt følger epostfaktura #%i:\n\n%s\n\n-- \n%s\n%s' % (ordre.ID, ordre.tekst,  ordre.firma, ordre.firma.vilkar)
+        self.tittel = "Epostfaktura fra %s: '%s' (#%i)" % (ordre.firma.firmanavn, self.kutt(ordre.tekst), ordre.ID)
+        if tekst is None: tekst = 'Vedlagt følger epostfaktura #%i:\n\n%s\n\n-- \n%s\n%s' % (ordre.ID, ordre.tekst,  ordre.firma, ordre.firma.vilkar)
         self.tekst = tekst
         self.testmelding = testmelding
         if self.testmelding: # vi er i utviklingsmodus, skift tittel
-            self.tittel = u"TESTFAKTURA "+self.tittel
+            self.tittel = "TESTFAKTURA "+self.tittel
 
     def mimemelding(self):
         m = MIMEMultipart()
@@ -88,10 +88,10 @@ class epost:
         return m
 
     def auth(self, brukernavn, passord):
-        if not type(brukernavn) in types.StringTypes:
-            raise UgyldigVerdi(u'Brukernavn skal være tekst (ikke "%s")' % type(brukernavn))
-        if not type(passord) in types.StringTypes:
-            raise UgyldigVerdi(u'Passord skal være tekst (ikke "%s")' % type(passord))
+        if not type(brukernavn) in (str,):
+            raise UgyldigVerdi('Brukernavn skal være tekst (ikke "%s")' % type(brukernavn))
+        if not type(passord) in (str,):
+            raise UgyldigVerdi('Passord skal være tekst (ikke "%s")' % type(passord))
         self._auth = True
         self.brukernavn = brukernavn
         self.passord = passord
@@ -101,17 +101,17 @@ class epost:
     def test(self): pass
 
     def kutt(self, s, l=30):
-        assert(type(s) in types.StringTypes)
+        assert(type(s) in (str,))
         if len(s) < l: return s
         return s[0:l] + "..."
 
     def settKopi(self, s):
         # setter BCC-kopi til s
-        if not type(s) in types.StringTypes:
-            raise UgyldigVerdi(u'Epostadresse skal være tekst (ikke "%s")' % type(s))
+        if not type(s) in (str,):
+            raise UgyldigVerdi('Epostadresse skal være tekst (ikke "%s")' % type(s))
         # sjekk at s er en gyldig epostadresse
         if not '@' in s:
-            raise UgyldigVerdi(u'Denne epostadressen er ikke gyldig: %s' % s)
+            raise UgyldigVerdi('Denne epostadressen er ikke gyldig: %s' % s)
         self.kopi = s
 
     def nyttVedlegg(self, f):
@@ -134,16 +134,16 @@ class smtp(epost):
     _auth = False
 
     def settServer(self, smtpserver, port=25):
-        if not type(smtpserver) in types.StringTypes:
-            raise UgyldigVerdi(u'smtpserver skal være tekst (ikke "%s")' % type(smtpserver))
-        if not type(port) == types.IntType:
-            raise UgyldigVerdi(u'port skal være et heltall (ikke "%s")' % type(port))
-        self.smtpserver=unicode(smtpserver)
+        if not type(smtpserver) in (str,):
+            raise UgyldigVerdi('smtpserver skal være tekst (ikke "%s")' % type(smtpserver))
+        if not type(port) == int:
+            raise UgyldigVerdi('port skal være et heltall (ikke "%s")' % type(port))
+        self.smtpserver=str(smtpserver)
         self.smtpport=int(port)
 
     def tls(self, _bool):
         if not type(_bool) == bool:
-            raise UgyldigVerdi(u'Verdien skal være True eller False (ikke "%s")' % type(_bool))
+            raise UgyldigVerdi('Verdien skal være True eller False (ikke "%s")' % type(_bool))
         self._tls = _bool
 
     def test(self):
@@ -172,7 +172,7 @@ class smtp(epost):
                 s.ehlo()
             if self._auth:
                 s.login(self.brukernavn, self.passord)
-        except socket.error,E:
+        except socket.error as E:
             raise SendeFeil(E)
         except:
             raise
@@ -192,8 +192,8 @@ class smtp(epost):
             #|      550.  If all addresses are accepted, then the method will return an
             #|      empty dictionary.
 
-            feil = [ "%s: %s" % (a, res[a][1]) for a in res.keys() ]
-            raise SendeFeil(u'Sendingen feilet for disse adressene:\n%s' % join(feil, '\n'))
+            feil = [ "%s: %s" % (a, res[a][1]) for a in list(res.keys()) ]
+            raise SendeFeil('Sendingen feilet for disse adressene:\n%s' % join(feil, '\n'))
         return True
 
 class sendmail(epost):
@@ -201,8 +201,8 @@ class sendmail(epost):
     _auth=False
 
     def settSti(self, sti):
-        if not type(sti) in types.StringTypes:
-            raise UgyldigVerdi(u'sti skal være tekst (ikke "%s")' % type(sti))
+        if not type(sti) in (str,):
+            raise UgyldigVerdi('sti skal være tekst (ikke "%s")' % type(sti))
         self.bin = sti
 
     def test(self):
@@ -210,7 +210,7 @@ class sendmail(epost):
         real = p.realpath(self.bin)
         logging.debug("fullstendig sti: %s", real)
         if not (p.exists(real) and p.isfile(real)): # er dette tilstrekkelig?
-            raise SendeFeil(u'%s er ikke en gyldig sendmail-kommando' % self.bin)
+            raise SendeFeil('%s er ikke en gyldig sendmail-kommando' % self.bin)
         return True
 
     def send(self):
@@ -232,7 +232,7 @@ class sendmail(epost):
             inn.write(self.mimemelding().as_string())
             r = inn.close()
         except:
-            raise SendeFeil(u'Sendingen feilet fordi:\n' + ut.read())
+            raise SendeFeil('Sendingen feilet fordi:\n' + ut.read())
         #i = inn.close()
         u = ut.close()
         logging.info('sendmail er avsluttet; %s U %s' % (r,u))
@@ -240,7 +240,7 @@ class sendmail(epost):
 
 class dump(epost):
     def send(self):
-        print self.mimemelding().as_string()
+        print(self.mimemelding().as_string())
         return True
     def test(self): return self.send()
 

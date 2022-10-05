@@ -86,7 +86,7 @@ ENDRINGER ="""
 """
 
 
-import fakturabibliotek
+from . import fakturabibliotek
 
 try:
     import sqlite3 as sqlite # python2.5 har sqlite3 innebygget
@@ -109,7 +109,7 @@ class oppgrader:
 
     def __init__(self, logg=None):
         if logg is None:
-            from StringIO import StringIO
+            from io import StringIO
             logg = StringIO()
         self.logg = logg
         self.lastEndringer(ENDRINGER)
@@ -147,9 +147,9 @@ class oppgrader:
             self.logg.write("Gammel versjon < 2.2 oppdaget, konverterer fra latin1 til unicode\n")
             egenskaper = self._unicode(egenskaper)
         for endringer in self.endringsmegler(objekt._tabellnavn):
-            for felt in endringer.keys():
+            for felt in list(endringer.keys()):
                 if endringer[felt] == True: #lagt til
-                    if not egenskaper.has_key(felt):
+                    if felt not in egenskaper:
                         egenskaper[felt] = 0
                 elif endringer[felt] == False: #fjernet
                     self.logg.write("fjerner felt: %s\n" % felt)
@@ -161,10 +161,10 @@ class oppgrader:
 
         k = objekt
 
-        sql = "INSERT INTO %s (%s) VALUES (%s)" % (k._tabellnavn, join(egenskaper.keys(), ","),
-            join(['?' for z in egenskaper.values()], ","))
+        sql = "INSERT INTO %s (%s) VALUES (%s)" % (k._tabellnavn, join(list(egenskaper.keys()), ","),
+            join(['?' for z in list(egenskaper.values())], ","))
         try:
-            self.nydbc.execute(sql, egenskaper.values())
+            self.nydbc.execute(sql, list(egenskaper.values()))
         except:
             exctype, value = sys.exc_info()[:2]
             self.logg.write('Oppradering feilet: %s: %s\n' % (exctype, value))
@@ -174,7 +174,7 @@ class oppgrader:
             ex = OppgraderingsFeil("Oppgradering feilet:\n%s" % value)
             ex.info = repr(sql)
             ex.logg = self.lesLogg()
-            print ex.logg
+            print(ex.logg)
             raise ex
         else:
             self.nydb.commit()
@@ -182,37 +182,37 @@ class oppgrader:
     def _unicode(self, d):
         if self.gmlbib.versjon() < 2.2: fra = 'latin1'
         else: fra = 'utf8'
-        for z in d.keys():
-            if type(d[z]) in (types.StringType,):
-                d[z] = unicode(d[z], fra)
+        for z in list(d.keys()):
+            if type(d[z]) in (bytes,):
+                d[z] = str(d[z], fra)
         return d
 
     def _flytt(self, tabell):
         "flytter alle oppføringer i <tabell> fra gammel til ny database (ingen oppgradering skjer)"
-        assert type(tabell) in types.StringTypes
+        assert type(tabell) in (str,)
         try:
             self.gmldbc.execute("SELECT * FROM %s" % tabell)
             rader = self.gmldbc.fetchall()
             self.nydbc.executemany("INSERT INTO %s VALUES (%s)" % (tabell, join(('?',) * len(rader[0]), ',')), rader)
             self.nydb.commit()
-        except sqlite.DatabaseError,e:
+        except sqlite.DatabaseError as e:
             if 'NO SUCH TABLE' in str(e).upper(): pass #for gammel versjon
             else: raise
         except IndexError:
             # <tabell> har ingen rader
-            print "OOPS! <%s> har ingen rader!" % tabell
+            print("OOPS! <%s> har ingen rader!" % tabell)
             pass
 
     def endringsmegler(self, tabell):
         gmlver = self.gmlbib.versjon()
         nyver  = self.nybib.versjon()
         # finner de aktuelle endringene mellom versjonene:
-        deltaer = [kartver for kartver in self.endringskart.keys() if kartver > gmlver and kartver <= nyver]
+        deltaer = [kartver for kartver in list(self.endringskart.keys()) if kartver > gmlver and kartver <= nyver]
         if not deltaer: return # ingen endringer skal gjøres
         deltaer.sort()
         for ver in deltaer:
             endringer = self.endringskart[ver]
-            if not endringer.has_key(tabell): continue
+            if tabell not in endringer: continue
             tabellendringer = endringer[tabell]
             yield tabellendringer
 
@@ -227,9 +227,9 @@ class oppgrader:
 
     def endre(self,ver,tabell,felt):
         k = self.endringskart
-        if not k.has_key(ver): k[ver] = {}
+        if ver not in k: k[ver] = {}
         v = k[ver]
-        if not v.has_key(tabell): v[tabell] = {}
+        if tabell not in v: v[tabell] = {}
         t = v[tabell]
         #print felt.find("+")
         if tabell.find("=") != -1: #navnebytte
@@ -254,7 +254,7 @@ class oppgrader:
         try:
             for kopi in self.gmlbib.hentSikkerhetskopier():
                 self._oppgrader(kopi)
-        except sqlite.DatabaseError,e:
+        except sqlite.DatabaseError as e:
             #if str(e).upper().startswith('NO SUCH TABLE'): pass #for gammel versjon
             if 'NO SUCH TABLE' in str(e).upper(): pass #for gammel versjon
             else: raise
@@ -275,7 +275,7 @@ class oppgrader:
         self.nybib.oppsett.databaseversjon = nyversjon # skriver tilbake versjonsnummeret, det kan ha blitt overskrevet
 
         # databaseintegritet:
-        print "kontrollerer den nye databasen"
+        print("kontrollerer den nye databasen")
         self.nybib.sjekkSikkerhetskopier(lagNyAutomatisk=True)
         self.logg.write('Ny database kontrollert')
 
@@ -290,7 +290,7 @@ class oppgrader:
         #kjør oppgradering
         try:
             shutil.move(dbSti, dbBackup)
-            from fakturabibliotek import kobleTilDatabase
+            from .fakturabibliotek import kobleTilDatabase
             ny = kobleTilDatabase(dbSti)
             gml = kobleTilDatabase(dbBackup)
             self.lastNyDatabase(ny)
@@ -327,24 +327,25 @@ class oppgrader:
 
 if __name__ == '__main__':
     ny = fakturabibliotek.kobleTilDatabase(dbnavn="faktura.nydb")
-    print "Ny database koblet til"
+    print("Ny database koblet til")
     gml = fakturabibliotek.kobleTilDatabase(dbnavn="faktura.gmldb")
-    print "Gammel database koblet til"
+    print("Gammel database koblet til")
     opp = oppgrader(logg)
     opp.lastNyDatabase(ny)
-    print "Ny database lastet"
+    print("Ny database lastet")
     opp.lastGammelDatabase(gml)
-    print "Gammel database lastet"
-    print "Oppgraderer..."
+    print("Gammel database lastet")
+    print("Oppgraderer...")
     try:
         opp.oppgrader()
-    except OppgraderingsFeil,(E):
-        print "Det gikk skikkelig galt."
-        print E.__str__()
-        print "=="
-        print E.info
-        print "=="
-        print "mer info i loggen: faktura.oppgradering.log"
+    except OppgraderingsFeil as xxx_todo_changeme:
+        (E) = xxx_todo_changeme
+        print("Det gikk skikkelig galt.")
+        print(E.__str__())
+        print("==")
+        print(E.info)
+        print("==")
+        print("mer info i loggen: faktura.oppgradering.log")
         sys.exit(1)
     else:
-        print u"Oppgradering fullført. Den nye databasen heter faktura.nydb. \nLogg finnes i faktura.oppgradering.log. "
+        print("Oppgradering fullført. Den nye databasen heter faktura.nydb. \nLogg finnes i faktura.oppgradering.log. ")

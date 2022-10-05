@@ -12,7 +12,7 @@ import sys, time, os, types
 from string import join, split
 import logging, subprocess
 
-import fakturafeil, fil
+from . import fakturafeil, fil
 
 try:
     import reportlab
@@ -25,7 +25,7 @@ except ImportError:
     #raise
 
 class rapport:
-    u'Lager økonomisk rapport på pdf'
+    'Lager økonomisk rapport på pdf'
     oppdatert = False
 
     def __init__(self, filnavn=None, rapportinfo={}):
@@ -46,17 +46,17 @@ class rapport:
         #print dir(self.seksjonover)
         self.tittel = self.stiler['Heading1']
         self.flow = []
-        self.flow.append(Paragraph(u'Fakturaer hos %s' % self.tryggXml(self.info['firma'].firmanavn), self.tittel))
-        self.flow.append(Paragraph(u'Generert av <i>Fryktelig Fin Faktura</i> den %s' % time.strftime("%Y-%m-%d", time.localtime()), self.normal))
-        det = u'Viser fakturaer '
-        if self.info['visubetalte']: det += u'(også ubetalte) '
-        else: det += u'(ikke ubetalte) '
+        self.flow.append(Paragraph('Fakturaer hos %s' % self.tryggXml(self.info['firma'].firmanavn), self.tittel))
+        self.flow.append(Paragraph('Generert av <i>Fryktelig Fin Faktura</i> den %s' % time.strftime("%Y-%m-%d", time.localtime()), self.normal))
+        det = 'Viser fakturaer '
+        if self.info['visubetalte']: det += '(også ubetalte) '
+        else: det += '(ikke ubetalte) '
         if self.info['dato'] != (None, None):
             _fra, _til = self.info['dato']
             if _fra is not None: det += "fra %s" % time.strftime("%Y-%m", time.localtime(_fra))
             if _til is not None: det += "til %s" % time.strftime("%Y-%m", time.localtime(_til))
         if self.info['kunde'] is not None:
-            det += u'sendt til %s' % self.info['kunde'].navn
+            det += 'sendt til %s' % self.info['kunde'].navn
         self.flow.append(Paragraph(det, self.normal))
         self.okonomi = {'inn':0.0, 'mva':0.0, 'b':0, 'u':0}
         self.seksjon = ''
@@ -103,7 +103,7 @@ class rapport:
         self.flow.append(Paragraph("ordre <i># %04i</i> (%s), utformet til %s den %s\n" % (ordre._id, status, ordre.kunde.navn, time.strftime("%Y-%m-%d", time.localtime(ordre.ordredato))), self.overskrift))
         if ordre.linje:
             for vare in ordre.linje:
-                self.flow.append(Paragraph("<li> #%i: %s </li>" % (vare._id, unicode(vare)), self.liste))
+                self.flow.append(Paragraph("<li> #%i: %s </li>" % (vare._id, str(vare)), self.liste))
 
     def tryggXml(self, s):
       return s.replace('&', '&amp;').replace('<', '&lt;')

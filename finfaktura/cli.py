@@ -11,14 +11,14 @@
 ###########################################################################
 
 import sys
-from fakturabibliotek import FakturaBibliotek, kobleTilDatabase
+from .fakturabibliotek import FakturaBibliotek, kobleTilDatabase
 
 def cli_faktura():
     db = kobleTilDatabase()
     bib = FakturaBibliotek(db)
     kunder = bib.hentKunder()
     kunde = CLIListe(kunder, "velg kunde: ")
-    print "kunde: ", unicode(kunde)
+    print("kunde: ", str(kunde))
     varer = bib.hentVarer()
     vare = CLIListe(varer, "velg vare: ")
     antall = ""
@@ -28,13 +28,13 @@ def cli_faktura():
     tekst = CLIInput("Fakturatekst: ")
     mva = vare.mva * vare.pris * antall / 100
     sum = vare.pris * antall + mva
-    print u"""STEMMER DETTE?
+    print("""STEMMER DETTE?
     =====
     Kunde: %s
     Vare: %s %s %s
     Tekst: %s
     SUM: %.2f kr (derav mva: %.2f)
-    ===== """ % (kunde, antall, vare.enhet, vare, tekst, sum, mva)
+    ===== """ % (kunde, antall, vare.enhet, vare, tekst, sum, mva))
     ja = CLIInput("NEI/ja (Enter for å avbryte): ")
     if not(len(ja) > 0 and ja.strip().lower()[0] == "j"):
         return False
@@ -48,12 +48,14 @@ def cli_faktura():
 
     try:
         pdf = bib.lagPDF(ordre, "epost", fakturanavn)
-    except FakturaFeil,(E):
-        print u"OUCH! Kunne ikke lage PDF! Årsak: %s" % E
-    except KundeFeil,(E):
-        print u"OUCH! Kunne ikke lage PDF! Årsak: %s" % E
+    except FakturaFeil as xxx_todo_changeme:
+        (E) = xxx_todo_changeme
+        print("OUCH! Kunne ikke lage PDF! Årsak: %s" % E)
+    except KundeFeil as xxx_todo_changeme1:
+        (E) = xxx_todo_changeme1
+        print("OUCH! Kunne ikke lage PDF! Årsak: %s" % E)
 
-    print "Lagde pdf: %s" % pdf.filnavn
+    print("Lagde pdf: %s" % pdf.filnavn)
     db.close()
 
 
@@ -62,7 +64,7 @@ def CLIenkoding():
     "Prøver å finne den gjeldende enkodingen på input"
     import os
     for z in ('LANG','LC_CTYPE','LC_ALL'):
-        if os.environ.has_key(z):
+        if z in os.environ:
             k = os.environ[z].lower()
             if k.find('utf8') != -1 or k.find('utf-8') != -1: return 'utf8'
     return 'latin1'
@@ -72,17 +74,17 @@ def CLIListe(liste, tekst=None):
     if not tekst:
         tekst = "velg blant %s:" % len(liste)
     try:
-        print "velg fra liste (%s valg):" % len(liste)
+        print("velg fra liste (%s valg):" % len(liste))
         i = 1
         for l in liste:
-            print "\t", i, unicode(l)
+            print("\t", i, str(l))
             i += 1
-        ret = raw_input(tekst)
+        ret = input(tekst)
     except EOFError:
         return CLIListe(liste)
     except KeyboardInterrupt:
         import sys
-        print
+        print()
         sys.exit(1)
     else:
         if (not ret.isdigit()) or (int(ret) < 1 or int(ret) > len(liste)):
@@ -93,12 +95,12 @@ def CLIListe(liste, tekst=None):
 
 def CLIInput(tekst):
     try:
-        ret = raw_input(tekst)
+        ret = input(tekst)
     except EOFError:
         return CLIInput(tekst)
     except KeyboardInterrupt:
         import sys
-        print
+        print()
         sys.exit(1)
     else:
-        return unicode(ret, CLIenkoding())
+        return str(ret, CLIenkoding())

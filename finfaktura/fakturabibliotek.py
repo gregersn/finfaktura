@@ -18,10 +18,10 @@ try:
 except ImportError:
     from pysqlite2 import dbapi2 as sqlite # prøv bruker/system-installert modul
 
-import historikk, fil
-from fakturakomponenter import fakturaOppsett, fakturaEpost, fakturaFirmainfo, \
+from . import historikk, fil
+from .fakturakomponenter import fakturaOppsett, fakturaEpost, fakturaFirmainfo, \
         fakturaOrdre, fakturaVare, fakturaKunde, fakturaSikkerhetskopi
-from fakturafeil import *
+from .fakturafeil import *
 
 PRODUKSJONSVERSJON=False # Sett denne til True for å skjule funksjonalitet som ikke er ferdigstilt
 DATABASEVERSJON=3.1
@@ -40,7 +40,7 @@ class FakturaBibliotek:
         self.oppsett = fakturaOppsett(db, versjonsjekk=sjekkVersjon, apiversjon=DATABASEVERSJON)
         try:
             self.epostoppsett = fakturaEpost(db)
-        except sqlite.DatabaseError,e:
+        except sqlite.DatabaseError as e:
             if "no such table" in str(e).lower(): self.epostoppsett = None ## for gammel versjon
             else: raise
 
@@ -111,7 +111,7 @@ class FakturaBibliotek:
 
     def hentEgenskapVerdier(self, tabell, egenskap):
         self.c.execute("SELECT DISTINCT %s FROM %s" % (egenskap, tabell))
-        return [unicode(x[0]) for x in self.c.fetchall() if x[0]]
+        return [str(x[0]) for x in self.c.fetchall() if x[0]]
 
     def lagSikkerhetskopi(self, ordre):
         s = fakturaSikkerhetskopi(self.db, ordre)
@@ -137,17 +137,17 @@ class FakturaBibliotek:
                 try:
                     self.lagSikkerhetskopi(o)
                     #historikk.pdfSikkerhetskopi(o, True, "sjekksikkerhetskopier(lagNyAutomatisk=True)")
-                except FakturaFeil, e:
+                except FakturaFeil as e:
                     #historikk.pdfSikkerhetskopi(o, False, "sjekksikkerhetskopier: %s" % e)
-                    raise SikkerhetskopiFeil(u'Kunne ikke lage sikkerhetskopi for ordre #%s! Årsak:\n%s' % (z[0], e))
+                    raise SikkerhetskopiFeil('Kunne ikke lage sikkerhetskopi for ordre #%s! Årsak:\n%s' % (z[0], e))
             else:
                 ordrer.append(o)
         return ordrer
 
     def lagPDF(self, ordre, blankettType, _filnavn=None):
-        from f60 import f60, REPORTLAB
+        from .f60 import f60, REPORTLAB
         if not REPORTLAB:
-            raise PDFFeil(u'Modulen "reportlab" er ikke installert. Uten denne kan du ikke lage pdf-fakturaer.')
+            raise PDFFeil('Modulen "reportlab" er ikke installert. Uten denne kan du ikke lage pdf-fakturaer.')
 
         pdf = f60(filnavn=_filnavn)
         #if not self.produksjonsversjon: pdf.settTestversjon()
@@ -155,8 +155,8 @@ class FakturaBibliotek:
         pdf.settFirmainfo(ordre.firma._egenskaper)
         try:
             pdf.settKundeinfo(ordre.kunde._id, ordre.kunde.postadresse())
-        except KundeFeil, e:
-            raise FakturaFeil(u"Kunne ikke lage PDF! %s" % e)
+        except KundeFeil as e:
+            raise FakturaFeil("Kunne ikke lage PDF! %s" % e)
         pdf.settOrdrelinje(ordre.hentOrdrelinje)
         if blankettType.lower() == "epost":
             res = pdf.lagEpost()
@@ -165,9 +165,9 @@ class FakturaBibliotek:
         elif blankettType.lower() == "kvittering":
             res = pdf.lagKvittering()
         else:
-            raise FakturaFeil(u"Ugyldig blankett-type: %s" % blankettType)
+            raise FakturaFeil("Ugyldig blankett-type: %s" % blankettType)
         if not res:
-            raise FakturaFeil(u"Kunne ikke lage PDF! ('%s')" % spdf.filnavn)
+            raise FakturaFeil("Kunne ikke lage PDF! ('%s')" % spdf.filnavn)
 
         return pdf
 
@@ -175,7 +175,7 @@ class FakturaBibliotek:
         return fil.vis(filnavn)
 
     def sendEpost(self, ordre, pdf, tekst=None, transport='auto'):
-        import epost
+        from . import epost
         if type(transport) == int:
             transport = epost.TRANSPORTMETODER[transport]
         if transport == 'auto':
@@ -198,7 +198,7 @@ class FakturaBibliotek:
         return m.send()
 
     def testEpost(self, transport='auto'):
-        import epost
+        from . import epost
         if type(transport) == int:
             transport = epost.TRANSPORTMETODER[transport]
         logging.debug('skal teste transport: %s', transport)
@@ -211,7 +211,7 @@ class FakturaBibliotek:
                 try:
                     if self.testEpost(mt):
                         return mt
-                except epost.SendeFeil,E:
+                except epost.SendeFeil as E:
                     feil += E
             ex = epost.SendeFeil()
             ex.transport = transport
@@ -231,7 +231,7 @@ class FakturaBibliotek:
             m.settSti(oppsett.sendmailsti)
         try:
             t = m.test()
-        except Exception,inst:
+        except Exception as inst:
             logging.debug("%s gikk %s", transport, inst.__str__())
             ex = epost.SendeFeil()
             ex.transport = transport
@@ -257,7 +257,7 @@ def lagDatabase(database, sqlfile=None):
         dbver = sjekkDatabaseVersjon(database)
         if dbver != sqlite.sqlite_version_info[0]:
             e = "Databasen din (versjon %s) kan ikke leses av pysqlite, som leser versjon %s" % (dbver, sqlite.sqlite_version_info[0])
-            print "FEIL!",e
+            print("FEIL!",e)
             raise DBVersjonFeil(e)
 
 def byggDatabase(db, sqlfile=None):
@@ -265,7 +265,7 @@ def byggDatabase(db, sqlfile=None):
     if sqlfile is not None:
         sql = file(sqlfile).read()
     else:
-        sql = unicode(lesRessurs(':/sql/faktura.sql'))
+        sql = str(lesRessurs(':/sql/faktura.sql'))
     db.executescript(sql)
     db.cursor().execute("INSERT INTO Oppsett (ID, databaseversjon, fakturakatalog) VALUES (1, ?, ?)",
         (DATABASEVERSJON, '~'))
@@ -302,7 +302,7 @@ def finnDatabasenavn(databasenavn=DATABASENAVN):
             fdir = os.path.join(pdir, ".finfaktura")
     fdir = fdir.decode(sys.getfilesystemencoding())
     if not os.path.exists(fdir):
-        os.mkdir(fdir, 0700)
+        os.mkdir(fdir, 0o700)
     return os.path.join(fdir, databasenavn)
 
 def kobleTilDatabase(dbnavn=None):
@@ -313,7 +313,8 @@ def kobleTilDatabase(dbnavn=None):
     try:
         db = sqlite.connect(database=os.path.abspath(dbfil), isolation_level=None) # isolation_level = None gir autocommit-modus
         logging.debug("Koblet til databasen %s", os.path.abspath(dbfil))
-    except sqlite.DatabaseError, (E):
+    except sqlite.DatabaseError as xxx_todo_changeme:
+        (E) = xxx_todo_changeme
         logging.debug("Vi bruker sqlite %s", sqlite.apilevel)
         dbver = sjekkDatabaseVersjon(dbnavn)
         logging.debug("Databasen er sqlite %s", dbver)
@@ -359,7 +360,7 @@ def lesRessurs(ressurs):
     from PyQt4 import QtCore
     f = QtCore.QFile(ressurs)
     if not f.open(QtCore.QIODevice.ReadOnly | QtCore.QIODevice.Text):
-        raise IOError(u"Kunne ikke åpne ressursen '%s'" % ressurs)
+        raise IOError("Kunne ikke åpne ressursen '%s'" % ressurs)
     t = QtCore.QTextStream(f)
     t.setCodec("UTF-8")
     s = QtCore.QString(t.readAll())

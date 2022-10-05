@@ -12,7 +12,7 @@
 
 import sys, logging, os.path, glob
 from PyQt4 import QtCore, QtGui
-from ui import finfaktura_oppsett_ui
+from .ui import finfaktura_oppsett_ui
 
 class finfakturaOppsett(finfaktura_oppsett_ui.Ui_FinFakturaOppsett):
     def __init__(self, faktura):
@@ -48,7 +48,7 @@ class finfakturaOppsett(finfaktura_oppsett_ui.Ui_FinFakturaOppsett):
              'Acrobat reader (win)': '%SYSTEMDRIVE%\%PROGRAMFILES%\Adobe\Reader*\Reader\AcroRd32.exe',
              'Foxit reader (win)': '%SYSTEMDRIVE%\%PROGRAMFILES%\Foxit Software\Foxit Reader\Foxit Reader.exe',
             }
-        for tekst, s in p.iteritems():
+        for tekst, s in p.items():
             sti = os.path.expandvars(s)
             logging.debug('sti %s, exists: %s', sti, os.path.exists(sti))
             if os.path.exists(sti):
@@ -67,14 +67,14 @@ class finfakturaOppsett(finfaktura_oppsett_ui.Ui_FinFakturaOppsett):
             startdir,
             QtGui.QFileDialog.ShowDirsOnly
             )
-        if len(unicode(ny)) > 0:
+        if len(str(ny)) > 0:
             logging.debug("Setter ny fakturakataolg: %s" % ny)
-            self.faktura.oppsett.fakturakatalog = unicode(ny)
-            self.oppsettFakturakatalog.setText(unicode(ny))
+            self.faktura.oppsett.fakturakatalog = str(ny)
+            self.oppsettFakturakatalog.setText(str(ny))
 
     def endreProgramVis(self):
-        ny = unicode(QtGui.QFileDialog.getOpenFileName(self.gui,
-            u"Velg et program å åpne PDF i",
+        ny = str(QtGui.QFileDialog.getOpenFileName(self.gui,
+            "Velg et program å åpne PDF i",
             self.oppsettProgramVisPDF.itemData(self.oppsettProgramVisPDF.currentIndex()).toPyObject())
             )
         if len(ny) > 0:
@@ -84,6 +84,6 @@ class finfakturaOppsett(finfaktura_oppsett_ui.Ui_FinFakturaOppsett):
 
     def oppdater(self):
         logging.debug("Lager oppsett")
-        self.faktura.oppsett.fakturakatalog = unicode(self.oppsettFakturakatalog.text())
-        self.faktura.oppsett.vispdf = unicode(self.oppsettProgramVisPDF.itemData(self.oppsettProgramVisPDF.currentIndex()).toPyObject())
+        self.faktura.oppsett.fakturakatalog = str(self.oppsettFakturakatalog.text())
+        self.faktura.oppsett.vispdf = str(self.oppsettProgramVisPDF.itemData(self.oppsettProgramVisPDF.currentIndex()).toPyObject())
 

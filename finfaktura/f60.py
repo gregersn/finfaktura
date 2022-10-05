@@ -64,9 +64,9 @@ from string import join, split
 import logging, subprocess, locale
 
 try:
-    import cStringIO as StringIO
+    import io as StringIO
 except ImportError:
-    import StringIO
+    import io
 
 class f60Eksisterer(Exception): pass
 class f60Feil(Exception): pass
@@ -92,7 +92,7 @@ __date__ = '$Date: 2018-06-18 20:55:37 +0200 (ma. 18. juni 2018) $'
 
 try:
     REPORTLAB2 = (reportlab.Version[0] >= '2')
-except AttributeError, IndexError:
+except AttributeError as IndexError:
     logging.warn('Reportlab-versjon kunne ikke leses. Dette er ikke versjon 2 eller nyere')
     REPORTLAB2 = False
 
@@ -117,7 +117,7 @@ def setlocale():
             logging.debug('satte locale : %s -> %s', x, locale.getlocale())
             LOCALE = True
             break
-        except locale.Error, e:
+        except locale.Error as e:
             logging.debug('locale passet ikke på denne plattformen: %s', x)
             continue
     logging.debug('locale endte opp som: %s', locale.getlocale())
@@ -166,7 +166,7 @@ class f60:
         self.faktura['vilkaar'] = self._s(vilkaar)
         if kid:
             if isinstance(kid, bool): kid = self.lagKid()
-            if not self.sjekkKid(kid): raise f60FeilKID(u'KID-nummeret er ikke riktig')
+            if not self.sjekkKid(kid): raise f60FeilKID('KID-nummeret er ikke riktig')
         self.faktura['kid'] = kid
 
     def settOrdrelinje(self, ordrelinje):
@@ -183,7 +183,7 @@ class f60:
         """Setter logoen som kommer oppe til venstre på fakturaen.
         Må være en str(), i et bildeformat som er lesbart av PIL."""
         if logo: self.firma['logo'] = logo
-        else: raise f60Feil(u'Ugyldig logo: %s' % logo)
+        else: raise f60Feil('Ugyldig logo: %s' % logo)
 
     def settFirmainfo(self, info):
         """info er en dictionary med følgende info:
@@ -195,7 +195,7 @@ class f60:
             Bankkonto: %(kontonummer)011i
             Org.nr: %(organisasjonsnummer)s
             Epost: %(epost)s"""
-        for k in info.keys():
+        for k in list(info.keys()):
             self.firma[k] = self._s(info[k])
 
     def settKundeinfo(self, kundenr, adresse):
@@ -254,8 +254,8 @@ class f60:
 
     def lagKid(self):
         "Lager kid av kundenummer og fakturanummer, med kontrollsiffer"
-        if not self.kunde.has_key('nr'):
-            raise f60Feil(u'Kundeinfo er ikke satt. Behøves for å lage KID (bruk .settKundeinfo())')
+        if 'nr' not in self.kunde:
+            raise f60Feil('Kundeinfo er ikke satt. Behøves for å lage KID (bruk .settKundeinfo())')
         tallrekke = "%06i%06i" % (self.kunde['nr'], self.faktura['nr'])
         return "%s%s" % (tallrekke, self.lagKontrollsifferMod10(tallrekke))
 
@@ -338,7 +338,7 @@ class f60:
 
     def paragraf(self, t, par_bredde = 80):
         """Bryter teksten med harde linjeskift på en gitt bredde, 80 tegn hvis ikke annet er oppgitt"""
-        assert(isinstance(t, basestring))
+        assert(isinstance(t, str))
         linjer = t.replace('\r\n', '\n').split('\n')
         ret = []
         for l in linjer:
@@ -360,18 +360,18 @@ class f60:
 
     def _s(self, t):
         """Sørger for at tekst er i riktig kodesett (encoding)"""
-        if not isinstance(t, basestring): return t
+        if not isinstance(t, str): return t
         # Reportlab 2.x vil ha unicode
         if REPORTLAB2:
             try:
-                return unicode(t)
+                return str(t)
             except UnicodeDecodeError:
-                return unicode(t, 'latin1')
+                return str(t, 'latin1')
         else: # Reportlab 1.x vil ha latin1/iso-8859-1
             try:
-                return unicode(t).encode('latin1')
+                return str(t).encode('latin1')
             except UnicodeDecodeError:
-                return unicode(t, 'latin1').encode('latin1')
+                return str(t, 'latin1').encode('latin1')
 
     def _kr(self, i):
         "Sørger for at et beløp skrives med riktig skilletegn og valuta. Returnerer tekst"
@@ -398,7 +398,7 @@ class f60:
         # Nede i høyre hjørne P(98,43) # deltaX = 86, deltaY = -22
         self.canvas.lines([(punktX+deltaX-2*mm, punktY+deltaY, punktX+deltaX, punktY+deltaY), (punktX+deltaX, punktY+deltaY, punktX+deltaX, punktY+deltaY+2*mm)])
 
-        if isinstance(tekst, basestring):
+        if isinstance(tekst, str):
             # skriv hjelpetekst til boksen
             self.canvas.setFont("Helvetica-Bold", 6)
             self.canvas.drawString(punktX+3*mm,punktY+1*mm, tekst)
@@ -505,7 +505,7 @@ class f60:
                 if enfil:# det er et filnavn, last det direkte
                     l = self.firma['logo']
                 else:
-                    l = StringIO.StringIO(self.firma['logo'])
+                    l = io.StringIO(self.firma['logo'])
                 self._logo = Image.open(l)
                 logo = PDFImage(self._logo, 10*mm, 267*mm, width=25*mm, height=25*mm)
                 logo.drawInlineImage(self.canvas, preserveAspectRatio=True)
@@ -607,7 +607,7 @@ Side: %i av %i
                 totalMva += mva
                 totalBelop += pris
 
-                if not vare.mva in mvagrunnlag.keys(): # legg til i oppsummeringen av salg
+                if not vare.mva in list(mvagrunnlag.keys()): # legg til i oppsummeringen av salg
                     mvagrunnlag[vare.mva] = []
                 mvagrunnlag[vare.mva] += [brutto,]
 
@@ -616,7 +616,7 @@ Side: %i av %i
                 self.canvas.drawRightString(mvaX, Y, self._kr(mva))
                 self.canvas.drawRightString(prisX, Y, self._kr(pris))
                 Y -= 3*mm
-        elif type(self.ordrelinje) == types.ListType:
+        elif type(self.ordrelinje) == list:
             for vare in self.ordrelinje:
                 # [tekst, kvantum, enhetspris, mva]
 
@@ -628,7 +628,7 @@ Side: %i av %i
                 totalMva += mva
                 totalBelop += pris
 
-                if not vare[3] in mvagrunnlag.keys(): # legg til i oppsummeringen av salg
+                if not vare[3] in list(mvagrunnlag.keys()): # legg til i oppsummeringen av salg
                     mvagrunnlag[vare[3]] = []
                 mvagrunnlag[vare[3]] += [brutto,]
 
@@ -752,13 +752,13 @@ if __name__ == '__main__':
     logging.basicConfig(level=logging.DEBUG)
     filnavn = './testfaktura.pdf'
     faktura = f60(filnavn, overskriv=True)
-    faktura.settKundeinfo(06, "Topert\nRopertgata 33\n9022 Nissedal")
-    faktura.settFakturainfo(03, 1145542709, 1146546709, u"Et forsøk på en faktura", u"Takk for handelen, kom gjerne igjen. Merk at det regners 5 % rente ved for sen betaling. ", kid=True, levertEpoch=1145142709)
+    faktura.settKundeinfo(0o6, "Topert\nRopertgata 33\n9022 Nissedal")
+    faktura.settFakturainfo(0o3, 1145542709, 1146546709, "Et forsøk på en faktura", "Takk for handelen, kom gjerne igjen. Merk at det regners 5 % rente ved for sen betaling. ", kid=True, levertEpoch=1145142709)
     faktura.settFirmainfo({'firmanavn':'Test Firma Ein',
                            'kontaktperson':'Rattatta Hansen',
-                           'adresse':u'v/Herr hei og hå\nSurdalsøyra',
+                           'adresse':'v/Herr hei og hå\nSurdalsøyra',
                            'postnummer':8999,
-                           'poststed':u'Fløya',
+                           'poststed':'Fløya',
                            'kontonummer':99999999999,
                            'organisasjonsnummer':876876,
                            'telefon':23233322,
@@ -766,7 +766,7 @@ if __name__ == '__main__':
     faktura.settOrdrelinje([ ["Leder", 1, 300, 0], ['Fotoreportasje', 1, 3000, 25], ['Servering', 4, 80, 12.5] ])
     #faktura.settLogo('logo.jpg')
     if faktura.lagEpost():
-        print "Kvittering laget i", filnavn
+        print("Kvittering laget i", filnavn)
     else:
-        print "Kvittering kunne ikke lagres i", filnavn
+        print("Kvittering kunne ikke lagres i", filnavn)
 

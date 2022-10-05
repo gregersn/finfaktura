@@ -12,8 +12,8 @@
 
 import logging
 from PyQt4 import QtCore, QtGui
-from ui import epost_ui
-import epost
+from .ui import epost_ui
+from . import epost
 
 
 class epostOppsett(epost_ui.Ui_epostOppsett):
@@ -69,39 +69,39 @@ class epostOppsett(epost_ui.Ui_epostOppsett):
         self.faktura.epostoppsett.transport = self.finnAktivTransport()
         if not self.sendKopi.isChecked():
             self.kopiAdresse.setText('')
-        self.faktura.epostoppsett.bcc = unicode(self.kopiAdresse.text())
-        self.faktura.epostoppsett.smtpserver = unicode(self.smtpServer.text())
+        self.faktura.epostoppsett.bcc = str(self.kopiAdresse.text())
+        self.faktura.epostoppsett.smtpserver = str(self.smtpServer.text())
         self.faktura.epostoppsett.smtpport = self.smtpPort.value()
         self.faktura.epostoppsett.smtptls = self.smtpTLS.isChecked()
         self.faktura.epostoppsett.smtpauth = self.smtpAuth.isChecked()
         if self.smtpHuskEpost.isChecked():
-            self.faktura.epostoppsett.smtpbruker = unicode(self.smtpBrukernavn.text())
-            self.faktura.epostoppsett.smtppassord = unicode(self.smtpPassord.text())
+            self.faktura.epostoppsett.smtpbruker = str(self.smtpBrukernavn.text())
+            self.faktura.epostoppsett.smtppassord = str(self.smtpPassord.text())
         else:
             self.faktura.epostoppsett.smtpbruker = ''
             self.faktura.epostoppsett.smtppassord = ''
-        self.faktura.epostoppsett.sendmailsti = unicode(self.sendmailSti.text())
+        self.faktura.epostoppsett.sendmailsti = str(self.sendmailSti.text())
 
     def roterAktivSeksjon(self, seksjon):
         logging.debug("roterer til %s er synlig" % seksjon)
         bokser = {'smtp':self.boxSMTP, 'sendmail':self.boxSendmail}
         if seksjon == 'auto': #vis alt
-            map(lambda x: x.setEnabled(True), bokser.values())
+            list(map(lambda x: x.setEnabled(True), list(bokser.values())))
             return
-        for merke, box in bokser.iteritems():
+        for merke, box in bokser.items():
             box.setEnabled(merke == seksjon)
 
     def testEpost(self):
         self.oppdaterEpost() # må lagre for å bruke de inntastede verdiene
         try:
             transport = self.faktura.testEpost(epost.TRANSPORTMETODER[self.finnAktivTransport()])
-        except Exception,ex:
+        except Exception as ex:
             logging.debug('Fikk feil: %s', ex)
-            s = u'Epostoppsettet fungerer ikke. Oppgitt feilmelding:\n %s \n\nKontroller at de oppgitte innstillingene \ner korrekte' % ex.message
+            s = 'Epostoppsettet fungerer ikke. Oppgitt feilmelding:\n %s \n\nKontroller at de oppgitte innstillingene \ner korrekte' % ex.message
             trans = getattr(ex, 'transport')
             if trans != 'auto':
                 ex.transportmetoder.remove(trans) # fjerner feilet metode fra tilgjengelig-liste
-                s += u', eller prøv en annen metode.\nTilgjengelige metoder:\n%s' % ', '.join(ex.transportmetoder)
+                s += ', eller prøv en annen metode.\nTilgjengelige metoder:\n%s' % ', '.join(ex.transportmetoder)
             self.alert(s)
         else:
             self.obs("Epostoppsettet fungerer. Bruker %s" % transport)

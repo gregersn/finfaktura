@@ -26,20 +26,20 @@ class sikkerhetskopi:
     
     def __init__(self, obj, label=None):
         if label is not None: self.label=label
-        if type(obj) in (types.StringType, types.UnicodeType):
+        if type(obj) in (bytes, str):
             self.data = obj
         else: #er en fil
             self.data = obj.read()
         #self.fil  = self._f()
         
     def lagre(self): #skal subklasses av hver implementasjon
-        raise IkkeImplementert(u"Metoden er ikke implementert for modulen!")
+        raise IkkeImplementert("Metoden er ikke implementert for modulen!")
     
     def tilgjengeligeMetoder(self):
         metoder = {'gmail':BRUK_GMAIL,
                    'fil':True,
         }
-        return [z for z in metoder.keys() if metoder[z]] # XXX:Dette er lite elegant
+        return [z for z in list(metoder.keys()) if metoder[z]] # XXX:Dette er lite elegant
         
     def _z(self, data):
         try: 
@@ -92,7 +92,7 @@ class gmailkopi(sikkerhetskopi):
     
     def __init__(self, obj, brukernavn, passord, label=None):
         if not BRUK_GMAIL:
-            raise Utilgjengelig(u'Gmail er ikke tilgjengelig. Har du installert libgmail?')
+            raise Utilgjengelig('Gmail er ikke tilgjengelig. Har du installert libgmail?')
         self.brukelig = True
         
         #print "Bruker libgmail, versjon:",libgmail.Version
@@ -104,14 +104,14 @@ class gmailkopi(sikkerhetskopi):
         #user,cred = file("/home/havard/.gmailpass").read().strip().split(",")
 
         gmail = libgmail.GmailAccount(self.brukernavn, self.passord)
-        print "Logger inn i Gmail med brukernavn %s" % self.brukernavn
+        print("Logger inn i Gmail med brukernavn %s" % self.brukernavn)
         gmail.login()
         fil = self._f()
-        print "Logget inn. Laster opp fil:", fil
+        print("Logget inn. Laster opp fil:", fil)
         try:
             return gmail.storeFile(fil, label=self.label)
         except:
-            raise SikkerhetskopieringFeilet(u'Sikkerhetskopiering til Gmail som %s feilet!' % self.brukernavn)
+            raise SikkerhetskopieringFeilet('Sikkerhetskopiering til Gmail som %s feilet!' % self.brukernavn)
 
 class filkopi(sikkerhetskopi):
     label = "Faktura"
@@ -127,7 +127,7 @@ class filkopi(sikkerhetskopi):
         fra = self._f()
         nyttnavn = os.path.basename(fra)
         if self.label: nyttnavn = self.label + ":" + nyttnavn
-        print "sikkerhetskopierer fra %s til %s" % (fra, self.hvor+"/"+nyttnavn)
+        print("sikkerhetskopierer fra %s til %s" % (fra, self.hvor+"/"+nyttnavn))
         try:
             os.rename(fra, self.hvor+"/"+nyttnavn)
             return True
@@ -141,7 +141,7 @@ if __name__ == '__main__':
     g = gmailkopi(file(cx), user, cred)
     #g = filkopi(file(cx), "/tmp/", "Test")
     if g.lagre():
-        print "Finfint. Sikkerhetskopi lagert på gmail"
+        print("Finfint. Sikkerhetskopi lagert på gmail")
     else:
-        print "Fillern. Sikkerhetskopi på gmail feilet!"
+        print("Fillern. Sikkerhetskopi på gmail feilet!")
     

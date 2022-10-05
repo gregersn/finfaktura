@@ -12,8 +12,8 @@
  
 import logging
 from PyQt4 import QtCore, QtGui
-from ui import firmainfo_ui
-from fakturabibliotek import typeofqt
+from .ui import firmainfo_ui
+from .fakturabibliotek import typeofqt
 
 class firmaOppsett(firmainfo_ui.Ui_firmaOppsett):
     def __init__(self, firma):
@@ -69,20 +69,20 @@ class firmaOppsett(firmainfo_ui.Ui_firmaOppsett):
 
     def vis(self):
         format = { self.Postnummer: "%04i", self.Kontonummer: "%011i", } # må formateres spesielt dersom det begynner med 0, eks. 0921
-        for til, fra in self.firmaWidgetKart().iteritems():
+        for til, fra in self.firmaWidgetKart().items():
             #debug("fra", fra, type(fra))
             #debug("til", til, type(til))
             if hasattr(til, 'setText'):
                 if not fra: continue
                 if til in format: s = format[til] % fra
-                else: s = unicode(fra)
+                else: s = str(fra)
                 til.setText(s)
             elif hasattr(til, 'setValue'):
                 if not fra: continue
                 til.setValue(int(fra))
             elif hasattr(til, 'setPlainText'):
                 if not fra: continue
-                til.setPlainText(unicode(fra))
+                til.setPlainText(str(fra))
         self.visLogo()
         self.firmaSjekk()
 
@@ -107,53 +107,53 @@ class firmaOppsett(firmainfo_ui.Ui_firmaOppsett):
 
     def samleInfo(self):
         r = {}
-        r['firmanavn'] = unicode(self.Firmanavn.text())
-        r['organisasjonsnummer'] = unicode(self.Organisasjonsnummer.text())
-        r['kontaktperson'] = unicode(self.Kontaktperson.text())
-        r['epost'] = unicode(self.Epost.text())
-        r['adresse'] = unicode(self.Adresse.toPlainText())
+        r['firmanavn'] = str(self.Firmanavn.text())
+        r['organisasjonsnummer'] = str(self.Organisasjonsnummer.text())
+        r['kontaktperson'] = str(self.Kontaktperson.text())
+        r['epost'] = str(self.Epost.text())
+        r['adresse'] = str(self.Adresse.toPlainText())
         r['postnummer'] = self.kanskjetall(self.Postnummer)
-        r['poststed'] = unicode(self.Poststed.text())
+        r['poststed'] = str(self.Poststed.text())
         r['telefon'] = self.kanskjetall(self.Telefon)
         r['mobil'] = self.kanskjetall(self.Mobil)
         r['telefaks'] = self.kanskjetall(self.Telefaks)
         r['kontonummer'] = self.kanskjetall(self.Kontonummer)
-        r['vilkar'] = unicode(self.Vilkar.toPlainText())
+        r['vilkar'] = str(self.Vilkar.toPlainText())
         r['mva'] = int(self.Mva.value())
         r['forfall'] = int(self.Forfall.value())
         return r
 
     def oppdater(self):
-        self.firma.firmanavn  = unicode(self.Firmanavn.text())
-        self.firma.organisasjonsnummer = unicode(self.Organisasjonsnummer.text())
-        self.firma.kontaktperson = unicode(self.Kontaktperson.text())
-        self.firma.epost      = unicode(self.Epost.text())
-        self.firma.adresse    = unicode(self.Adresse.toPlainText())
+        self.firma.firmanavn  = str(self.Firmanavn.text())
+        self.firma.organisasjonsnummer = str(self.Organisasjonsnummer.text())
+        self.firma.kontaktperson = str(self.Kontaktperson.text())
+        self.firma.epost      = str(self.Epost.text())
+        self.firma.adresse    = str(self.Adresse.toPlainText())
         self.firma.postnummer = self.kanskjetall(self.Postnummer)
-        self.firma.poststed   = unicode(self.Poststed.text())
+        self.firma.poststed   = str(self.Poststed.text())
         self.firma.telefon    = self.kanskjetall(self.Telefon)
         self.firma.mobil      = self.kanskjetall(self.Mobil)
         self.firma.telefaks   = self.kanskjetall(self.Telefaks)
         self.firma.kontonummer = self.kanskjetall(self.Kontonummer)
-        self.firma.vilkar     = unicode(self.Vilkar.toPlainText())
+        self.firma.vilkar     = str(self.Vilkar.toPlainText())
         self.firma.mva        = int(self.Mva.value())
         self.firma.forfall    = int(self.Forfall.value())
         mangler = self.sjekkFirmaMangler()
         if mangler:
-            mangel = u'Du er nødt til å oppgi:\n%s' % ([ mangler[obj].lower() for obj in mangler.keys() ])
+            mangel = 'Du er nødt til å oppgi:\n%s' % ([ mangler[obj].lower() for obj in list(mangler.keys()) ])
             logging.debug (mangel)
             QtGui.QMessageBox.critical(self.gui, 'Ufullstendige opplysninger', mangel)
-            mangler.keys()[0].setFocus()
+            list(mangler.keys())[0].setFocus()
             return False
 
     def sjekkFirmaMangler(self):
         kravkart = {}
         kravkart.update(self._kontrollkart)
         test = None
-        for obj in kravkart.keys():
+        for obj in list(kravkart.keys()):
             if isinstance(obj, QtGui.QSpinBox): test = obj.value() > 0
             elif isinstance(obj, QtGui.QComboBox): test = obj.currentText()
-            elif isinstance(obj, (QtGui.QLineEdit,QtGui.QTextEdit,)): test = obj.text()
+            elif isinstance(obj, (QtGui.QLineEdit,QtGui.QTextEdit)): test = obj.text()
             if test is None:
                 logging.error('sjekkFirmaMangler: mangler test for % obj')
             elif test: kravkart.pop(obj)
@@ -163,11 +163,11 @@ class firmaOppsett(firmainfo_ui.Ui_firmaOppsett):
         ok = QtGui.QColor('white')
         tom = QtGui.QColor('red')
         widget = 'QWidget'
-        for obj in self._kontrollkart.keys():
+        for obj in list(self._kontrollkart.keys()):
             if isinstance(obj, (QtGui.QSpinBox, QtGui.QDoubleSpinBox)): test = obj.value() > 0
             elif isinstance(obj, QtGui.QComboBox): test = obj.currentText()
-            elif isinstance(obj, (QtGui.QLineEdit,QtGui.QTextEdit,)): test = obj.text()
-            elif isinstance(obj, (QtGui.QPlainTextEdit,)): test = obj.toPlainText()
+            elif isinstance(obj, (QtGui.QLineEdit,QtGui.QTextEdit)): test = obj.text()
+            elif isinstance(obj, QtGui.QPlainTextEdit): test = obj.toPlainText()
             else:
                 logging.error('mangler test for %s (%s)' % (obj, type(obj)))
             if test:
@@ -192,7 +192,7 @@ class firmaOppsett(firmainfo_ui.Ui_firmaOppsett):
                 startdir,
                 'Bildefiler (*.png *.xpm *.jpg *.jpeg *.gif *.bmp *.ppm *.pgm *.pbm)',
                 )
-            if len(unicode(logofile)) > 0:
+            if len(str(logofile)) > 0:
                 logging.debug ("Setter ny logo: %s" % logofile)
 
                 logo = QtGui.QPixmap(logofile)
