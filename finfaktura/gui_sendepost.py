@@ -11,7 +11,7 @@
 ###########################################################################
 
 import sys, os, logging, mimetypes, stat
-from PyQt5 import QtCore, QtGui
+from PyQt5 import QtCore, QtGui, QtWidgets
 from .ui import sendepost_ui
 
 
@@ -41,7 +41,7 @@ class sendEpost(sendepost_ui.Ui_sendEpost):
             if mime is not None:
                 mtype = mime[0]
             size = os.stat(ff)[stat.ST_SIZE]
-            i = QtGui.QTreeWidgetItem([f, mtype, prettySize(size)])
+            i = QtWidgets.QTreeWidgetItem([f, mtype, prettySize(size)])
             self.vedlegg.addTopLevelItem(i)
 
     def exec_(self):

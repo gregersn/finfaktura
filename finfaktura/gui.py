@@ -251,7 +251,7 @@ class FinFaktura(QtWidgets.QMainWindow):  #Ui_MainWindow): ## leser gui fra fakt
             if not visGamle and ordre.betalt and ordre.ordredato < nu - 60 * 60 * 24 * 7 * 4 * 6: continue  # eldre enn seks mnd og betalt
             if ordre.betalt: bet = strftime("%Y-%m-%d %H:%M", localtime(ordre.betalt))
             else: bet = "Nei"
-            l = QtGui.QTreeWidgetItem([
+            l = QtWidgets.QTreeWidgetItem([
                 "%06d" % ordre.ID,
                 '%s' % ordre.tekst,
                 '%s' % ordre.kunde.navn,
@@ -725,7 +725,7 @@ class FinFaktura(QtWidgets.QMainWindow):  #Ui_MainWindow): ## leser gui fra fakt
         i = self.gui.kundeKundeliste.addTopLevelItem
         self.gui.kundeKundeliste.clear()
         for kunde in self.faktura.hentKunder(inkluderSlettede=visFjernede):
-            l = QtGui.QTreeWidgetItem([
+            l = QtWidgets.QTreeWidgetItem([
                 "%03d" % kunde.ID,
                 '%s' % kunde.navn,
                 '%s' % kunde.epost,
@@ -950,7 +950,7 @@ class FinFaktura(QtWidgets.QMainWindow):  #Ui_MainWindow): ## leser gui fra fakt
         for vare in self.faktura.hentVarer(inkluderSlettede=visFjernede):
             if vare.pris is None: p = 0.0
             else: p = vare.pris
-            l = QtGui.QTreeWidgetItem(["%03d" % vare.ID, str(vare.navn), str(vare.detaljer), "%.2f" % p, str(vare.enhet)])
+            l = QtWidgets.QTreeWidgetItem(["%03d" % vare.ID, str(vare.navn), str(vare.detaljer), "%.2f" % p, str(vare.enhet)])
             l.vare = vare
             if vare.slettet:
                 l.setIcon(0, self.slettetIkon)

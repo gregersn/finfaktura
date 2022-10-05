@@ -290,8 +290,11 @@ def finnDatabasenavn(databasenavn: str = DATABASENAVN) -> Path:
     returnerer filnavn som unicode-streng
     """
     db_navn = os.getenv('FAKTURADB')
-    if db_navn is not None and (not PRODUKSJONSVERSJON or (db := Path(db_navn)).is_file()):
-        return db
+
+    if db_navn is not None:
+        db = Path(db_navn)
+        if not PRODUKSJONSVERSJON or (db.is_file()):
+            return db
     if os.getenv('FAKTURADIR') is not None:
         fdir = Path(os.getenv('FAKTURADIR'))
     else:
