@@ -8,9 +8,11 @@
 # $Id$
 ###########################################################################
 
+from pathlib import Path
 import types, os, sys, os.path, shutil
 from time import time, strftime, localtime
 import logging, subprocess
+from typing import Optional
 import xml.etree.ElementTree  # help py2exe
 try:
     import sqlite3 as sqlite  # python2.5 har sqlite3 innebygget
@@ -249,10 +251,10 @@ class FakturaBibliotek:
                 return None
 
 
-def lagDatabase(database, sqlfile=None):
+def lagDatabase(database: Path, sqlfile=None):
     "lager databasestruktur. 'database' er filnavn (unicode)"
     try:
-        db = sqlite.connect(os.path.normpath(database.encode('utf8')), isolation_level=None)
+        db = sqlite.connect(database, isolation_level=None)
         return byggDatabase(db, sqlfile)
     except sqlite.DatabaseError:
         raise
@@ -276,7 +278,7 @@ def byggDatabase(db, sqlfile=None):
     return db
 
 
-def finnDatabasenavn(databasenavn=DATABASENAVN):
+def finnDatabasenavn(databasenavn: str = DATABASENAVN) -> Path:
     """finner et egnet sted for databasefila, enten fra miljøvariabler eller i standard plassering.
 
     følgende miljøvariabler påvirker denne funksjonen:
@@ -287,37 +289,31 @@ def finnDatabasenavn(databasenavn=DATABASENAVN):
 
     returnerer filnavn som unicode-streng
     """
-    db = os.getenv('FAKTURADB')
-    if db is not None and (not PRODUKSJONSVERSJON or os.path.exists(db)):
-        return db.decode(sys.getfilesystemencoding())  # returnerer miljøvariabelen $FAKTURADB
-    fdir = os.getenv('FAKTURADIR')
-    if not fdir:
+    db_navn = os.getenv('FAKTURADB')
+    if db_navn is not None and (not PRODUKSJONSVERSJON or (db := Path(db_navn)).is_file()):
+        return db
+    if os.getenv('FAKTURADIR') is not None:
+        fdir = Path(os.getenv('FAKTURADIR'))
+    else:
         #sjekk for utviklermodus
         if not PRODUKSJONSVERSJON:
-            return databasenavn  # returner DATABASENAVN ('faktura.db'?) i samme katalog
+            return Path(databasenavn)  # returner DATABASENAVN ('faktura.db'?) i samme katalog
         #sjekk for windows
-        if sys.platform.startswith('win'):
-            pdir = os.getenv('USERPROFILE')
-            fdir = os.path.join(pdir, "finfaktura")
-        else:
-            #sjekk for mac
-            #sjekk for linux
-            pdir = os.getenv('HOME')
-            fdir = os.path.join(pdir, ".finfaktura")
-    fdir = fdir.decode(sys.getfilesystemencoding())
+        fdir = Path.home() / "finfaktura"
+
     if not os.path.exists(fdir):
         os.mkdir(fdir, 0o700)
-    return os.path.join(fdir, databasenavn)
+    return fdir / databasenavn
 
 
-def kobleTilDatabase(dbnavn=None):
+def kobleTilDatabase(dbnavn: Optional[Path] = None):
     if dbnavn is None:
         dbnavn = finnDatabasenavn()
     logging.debug('skal koble til %s (%s/%s)', dbnavn, repr(dbnavn), type(dbnavn))
-    dbfil = os.path.normpath(os.path.realpath(dbnavn.encode('utf-8')))
+
     try:
-        db = sqlite.connect(database=os.path.abspath(dbfil), isolation_level=None)  # isolation_level = None gir autocommit-modus
-        logging.debug("Koblet til databasen %s", os.path.abspath(dbfil))
+        db = sqlite.connect(database=dbnavn.absolute(), isolation_level=None)  # isolation_level = None gir autocommit-modus
+        logging.debug("Koblet til databasen %s", dbnavn.absolute())
     except sqlite.DatabaseError as xxx_todo_changeme:
         (E) = xxx_todo_changeme
         logging.debug("Vi bruker sqlite %s", sqlite.apilevel)
@@ -348,15 +344,14 @@ def sjekkDatabaseVersjon(dbnavn):
     else: return False
 
 
-def sikkerhetskopierFil(filnavn):
+def sikkerhetskopierFil(filnavn: Path):
     """lager sikkerhetskopi av filnavn -> filnavn~
 
     Forventer filnavn i unicode"""
-    f = filnavn.encode(sys.getfilesystemencoding())
-    logging.debug('skal sikkerhetskopiere %s (altså %s)', repr(filnavn), repr(f))
-    assert os.path.exists(f)
-    bkpfil = "%s-%s~" % (f, int(time()))
-    return shutil.copyfile(f, bkpfil)
+    logging.debug('skal sikkerhetskopiere %s (altså %s)', repr(filnavn), repr(filnavn))
+    assert filnavn.is_file()
+    bkpfil = "%s-%s~" % (filnavn, int(time()))
+    return shutil.copyfile(filnavn, bkpfil)
 
 
 def lesRessurs(ressurs):

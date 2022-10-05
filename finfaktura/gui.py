@@ -46,6 +46,7 @@ class FinFaktura(QtWidgets.QMainWindow):  #Ui_MainWindow): ## leser gui fra fakt
     denne_kunde = None
     denne_vare = None
     gammelTab = 0
+    firma: finfaktura.fakturakomponenter.fakturaFirmainfo
 
     def __init__(self):
         QtWidgets.QMainWindow.__init__(self)
@@ -292,7 +293,7 @@ class FinFaktura(QtWidgets.QMainWindow):  #Ui_MainWindow): ## leser gui fra fakt
         except FirmainfoFeil as e:
             self.alert('Informasjonen om firmaet ditt må være fullstendig '+\
                        'før du fyller ut fakturaer.\n'+
-                       e.message)
+                       str(e))
             self.visFirmaOppsett()
             return False
         if kunde is not None:
@@ -1223,7 +1224,7 @@ class FinFaktura(QtWidgets.QMainWindow):  #Ui_MainWindow): ## leser gui fra fakt
         res = dialog.exec_()
 
     def visFirmaOppsett(self):
-        dialog = gui_firma.firmaOppsett(self.firma)
+        dialog = gui_firma.FirmaOppsett(self.firma)
         res = dialog.exec_()
         logging.debug('visFirmaOppsett.exec: %s', res)
         for egenskap, verdi in res.items():

@@ -11,14 +11,17 @@
 ###########################################################################
 
 import logging
+from typing import Any, Dict
 from PyQt5 import QtCore, QtGui, QtWidgets
+
+from finfaktura.fakturakomponenter import fakturaFirmainfo
 from .ui import firmainfo_ui
 from .fakturabibliotek import typeofqt
 
 
-class firmaOppsett(firmainfo_ui.Ui_firmaOppsett):
+class FirmaOppsett(firmainfo_ui.Ui_firmaOppsett):
 
-    def __init__(self, firma):
+    def __init__(self, firma: fakturaFirmainfo):
         self.firma = firma
         self.gui = QtWidgets.QDialog()
         self.setupUi(self.gui)
@@ -51,7 +54,7 @@ class firmaOppsett(firmainfo_ui.Ui_firmaOppsett):
 
 ############## FIRMAINFO ###################
 
-    def firmaWidgetKart(self):
+    def firmaWidgetKart(self) -> Dict[Any, Any]:
         return {
             self.Firmanavn: self.firma.firmanavn,
             self.Organisasjonsnummer: self.firma.organisasjonsnummer,
@@ -104,14 +107,14 @@ class firmaOppsett(firmainfo_ui.Ui_firmaOppsett):
             self.LogoPixmap.setPixmap(logo)
             self.lagreLogo.setText('&Fjern logo')
 
-    def kanskjetall(self, obj):
+    def kanskjetall(self, obj: QtWidgets.QWidget):
         try:
             return int(obj.text())
         except ValueError:
             return None
 
     def samleInfo(self):
-        r = {}
+        r: Dict[str, str | float | int | None] = {}
         r['firmanavn'] = str(self.Firmanavn.text())
         r['organisasjonsnummer'] = str(self.Organisasjonsnummer.text())
         r['kontaktperson'] = str(self.Kontaktperson.text())
@@ -152,7 +155,7 @@ class firmaOppsett(firmainfo_ui.Ui_firmaOppsett):
             return False
 
     def sjekkFirmaMangler(self):
-        kravkart = {}
+        kravkart: Dict[Any, Any] = {}
         kravkart.update(self._kontrollkart)
         test = None
         for obj in list(kravkart.keys()):

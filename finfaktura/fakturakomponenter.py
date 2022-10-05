@@ -9,15 +9,10 @@
 ###########################################################################
 
 import sys, re, types, time, os.path
+import sqlite3
 
 import logging, subprocess
-
-try:
-    import sqlite3 as sqlite  # python2.5 har sqlite3 innebygget
-except ImportError:
-    from pysqlite2 import dbapi2 as sqlite  # prøv bruker/system-installert modul
-
-from PyQt5 import QtCore
+from typing import Any, Optional
 
 from .fakturafeil import *
 
@@ -30,7 +25,7 @@ class fakturaKomponent:
     _sqlExists = True
     _egenskaperBlob = []
 
-    def __init__(self, db, Id=None):
+    def __init__(self, db: sqlite3.Connection, Id: Optional[int] = None):
         self.db = db
         self.c = self.db.cursor()
         self._egenskaperAldriCache = []
@@ -41,7 +36,7 @@ class fakturaKomponent:
         self._egenskaper = self.hentEgenskaperListe()
         self.hentEgenskaper()
 
-    def __getattr__(self, egenskap):
+    def __getattr__(self, egenskap: str):
         #logging.debug("__getattr__: %s" % (egenskap))
         if not self._sqlExists:  #tabellen finnes ikke i databasen
             return None
@@ -52,7 +47,7 @@ class fakturaKomponent:
         #logging.debug("__getattr__:2: %s" % type(self._egenskaper[egenskap]))
         return self._egenskaper[egenskap]
 
-    def __setattr__(self, egenskap, verdi):
+    def __setattr__(self, egenskap: str, verdi: Any):
         #logging.debug("__setattr__: %s  " % (egenskap))
         #logging.debug("__setattr__: %s = %s " % (egenskap, verdi))
         origverdi = verdi
@@ -94,7 +89,7 @@ class fakturaKomponent:
             self._egenskaper.update({z: r[self._egenskaperListe.index(z)]})
             self._egenskaper[z] = verdi
 
-    def oppdaterEgenskap(self, egenskap, verdi):
+    def oppdaterEgenskap(self, egenskap: str, verdi: Any):
         _sql = "UPDATE %s SET %s=? WHERE ID=?" % (self._tabellnavn, egenskap)
         logging.debug("%s <= %s, %s", _sql, repr(verdi), self._id)
         self.c.execute(_sql, (verdi, self._id))
@@ -106,7 +101,7 @@ class fakturaKomponent:
         self.db.commit()
         return self.c.lastrowid
 
-    def helstDesimal(self, d):
+    def helstDesimal(self, d: Any):
         try:
             return float(d)
         except TypeError:
@@ -116,7 +111,7 @@ class fakturaKomponent:
 class fakturaKunde(fakturaKomponent):
     _tabellnavn = "Kunde"
 
-    def __init__(self, db, Id=None):
+    def __init__(self, db: sqlite3.Connection, Id: Optional[int] = None):
         fakturaKomponent.__init__(self, db, Id)
 
     def __str__(self):
@@ -364,7 +359,23 @@ class fakturaFirmainfo(fakturaKomponent):
     _id = 1
     _egenskaperAldriCache = []
 
-    def __init__(self, db):
+    firmanavn: str
+    organisasjonsnummer: str
+    kontaktperson: str
+    epost: str
+    adresse: str
+    postnummer: int | None
+    poststed: str
+    telefon: int | None
+    mobil: int | None
+    telefaks: int | None
+    kontonummer: int | None
+    vilkar: str
+    mva: int
+    forfall: int
+    logo: str
+
+    def __init__(self, db: sqlite3.Connection):
         self.db = db
         self.c = self.db.cursor()
 
@@ -407,14 +418,15 @@ class fakturaFirmainfo(fakturaKomponent):
     def sjekkData(self):
         sjekk = ["firmanavn", "kontaktperson", "adresse", "postnummer", "poststed", "kontonummer", "epost"]
         mangler = [felt for felt in sjekk if not getattr(self, felt)]
-        if mangler: raise FirmainfoFeil("Følgende felt er ikke fylt ut: %s" % join(mangler, ", "))
+        if mangler:
+            raise FirmainfoFeil("Følgende felt er ikke fylt ut: %s" % ", ".join(mangler))
 
 
 class fakturaOppsett(fakturaKomponent):
     _tabellnavn = "Oppsett"
     _id = 1
 
-    def __init__(self, db, versjonsjekk=True, apiversjon=None):
+    def __init__(self, db: sqlite3.Connection, versjonsjekk: bool = True, apiversjon: Optional[str] = None):
 
         self.apiversjon = apiversjon
         c = db.cursor()
@@ -426,7 +438,7 @@ class fakturaOppsett(fakturaKomponent):
         for obj in datastrukturer:
             try:
                 c.execute("SELECT * FROM %s LIMIT 1" % obj._tabellnavn)
-            except sqlite.DatabaseError:
+            except sqlite3.DatabaseError:
                 # db mangler eller er korrupt
                 # for å finne ut om det er en gammel versjon
                 # sparer vi på tabellene som mangler og sammenligner
@@ -454,7 +466,7 @@ class fakturaOppsett(fakturaKomponent):
             ))
             db.commit()
             fakturaKomponent.__init__(self, db, Id=self._id)
-        except sqlite.DatabaseError:
+        except sqlite3.DatabaseError:
             # tabellen finnes ikke
             self._sqlExists = False
             if versjonsjekk:

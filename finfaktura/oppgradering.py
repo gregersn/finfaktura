@@ -85,6 +85,7 @@ ENDRINGER = """
 3.2:Ordrelinje:tekst+
 """
 
+from pathlib import Path
 from . import fakturabibliotek
 
 try:
@@ -282,7 +283,7 @@ class oppgrader:
         self.nybib.sjekkSikkerhetskopier(lagNyAutomatisk=True)
         self.logg.write('Ny database kontrollert')
 
-    def oppgraderSamme(self, dbSti):
+    def oppgraderSamme(self, dbSti: Path):
         #flytt gammel database
         katalog, database = os.path.split(dbSti)
         dbBackupNavn = "%s-%s~" % (database, int(time.time()))

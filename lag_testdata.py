@@ -9,7 +9,7 @@
 # $Id: test.py 260 2008-05-11 08:59:23Z havard.gulldahl $
 ###########################################################################
 
-import types, os, sys, os.path, random, logging
+import sys, random, logging
 
 from time import time, strftime, localtime
 from finfaktura.fakturabibliotek import *
@@ -23,8 +23,8 @@ if __name__ == "__main__":
     import sys
     dbnavn = sys.argv[1]
     sqlitedb = finnDatabasenavn(dbnavn)
-    logging.debug('bruker sqlitedb: %s', os.path.abspath(sqlitedb))
-    from pysqlite2 import dbapi2 as sqlite
+    logging.debug('bruker sqlitedb: %s', sqlitedb.absolute())
+    import sqlite3 as sqlite
     from pprint import pprint
     cx = kobleTilDatabase(sqlitedb)
 
