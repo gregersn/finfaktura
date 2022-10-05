@@ -193,16 +193,16 @@ class firmaOppsett(firmainfo_ui.Ui_firmaOppsett):
             self.visLogo()
         else:
             startdir = ""
-            logofile = QtGui.QFileDialog.getOpenFileName(
+            logofile = QtWidgets.QFileDialog.getOpenFileName(
                 self.gui,
                 "Velg bildefil for firmaets logo",
                 startdir,
                 'Bildefiler (*.png *.xpm *.jpg *.jpeg *.gif *.bmp *.ppm *.pgm *.pbm)',
             )
             if len(str(logofile)) > 0:
-                logging.debug("Setter ny logo: %s" % logofile)
+                logging.debug("Setter ny logo: %s", logofile)
 
-                logo = QtGui.QPixmap(logofile)
+                logo = QtGui.QPixmap(logofile[0])
                 if logo.isNull():  # kunne ikke åpne logo
                     return False
 
@@ -210,7 +210,7 @@ class firmaOppsett(firmainfo_ui.Ui_firmaOppsett):
                 scaledlogo = logo.scaled(QtCore.QSize(360, 360), QtCore.Qt.KeepAspectRatio, QtCore.Qt.SmoothTransformation)
                 scaledlogo.save(stream, 'PNG')
                 #self.firma.logo = buffer(stream.data())
-                self.firma.logo = buffer(str(stream.data()))
+                self.firma.logo = str(stream.data())
                 logging.debug('logo: %s %s %s', type(self.firma.logo), len(self.firma.logo), repr(self.firma.logo))
                 self.visLogo()
 

@@ -1249,10 +1249,10 @@ class FinFaktura(QtWidgets.QMainWindow):  #Ui_MainWindow): ## leser gui fra fakt
 ############## GENERELLE METODER ###################
 
     def alert(self, msg):
-        QtWidgets.QMessageBox.critical(self, "Feil!", msg, QtGui.QMessageBox.Ok)
+        QtWidgets.QMessageBox.critical(self, "Feil!", msg, QtWidgets.QMessageBox.Ok)
 
     def obs(self, msg):
-        QtWidgets.QMessageBox.information(self, "Obs!", msg, QtGui.QMessageBox.Ok)
+        QtWidgets.QMessageBox.information(self, "Obs!", msg, QtWidgets.QMessageBox.Ok)
 
     def JaNei(self, s):
         svar = QtWidgets.QMessageBox.question(self, "Hm?", s, QtWidgets.QMessageBox.Yes,
