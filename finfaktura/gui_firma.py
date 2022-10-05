@@ -9,13 +9,15 @@
 # $Id: faktura.py 260 2008-05-11 08:59:23Z havard.gulldahl $
 #
 ###########################################################################
- 
+
 import logging
-from PyQt4 import QtCore, QtGui
+from PyQt5 import QtCore, QtGui
 from .ui import firmainfo_ui
 from .fakturabibliotek import typeofqt
 
+
 class firmaOppsett(firmainfo_ui.Ui_firmaOppsett):
+
     def __init__(self, firma):
         self.firma = firma
         self.gui = QtGui.QDialog()
@@ -23,23 +25,22 @@ class firmaOppsett(firmainfo_ui.Ui_firmaOppsett):
         self.gui.connect(self.lagreLogo, QtCore.SIGNAL("clicked()"), self.finnFjernLogo)
 
         self._kontrollkart = {
-            self.Firmanavn:'Firmanavn',
+            self.Firmanavn: 'Firmanavn',
             #self.Organisasjonsnummer:u'Organisasjonsnummer fra Brønnøysund',
-            self.Kontaktperson:'Kontaktperson',
-            self.Epost:'Epostadresse',
-            self.Adresse:'Adresse',
-            self.Postnummer:'Postnummer',
-            self.Poststed:'Poststed',
-            self.Telefon:'Telefonnummer',
-            self.Mobil:'Mobilnummer',
-            self.Kontonummer:'Kontonummer',
+            self.Kontaktperson: 'Kontaktperson',
+            self.Epost: 'Epostadresse',
+            self.Adresse: 'Adresse',
+            self.Postnummer: 'Postnummer',
+            self.Poststed: 'Poststed',
+            self.Telefon: 'Telefonnummer',
+            self.Mobil: 'Mobilnummer',
+            self.Kontonummer: 'Kontonummer',
             #self.Mva:'Momssats',
-            self.Forfall:'Forfallsperiode',
+            self.Forfall: 'Forfallsperiode',
         }
         self.gui.show()
         self.vis()
         #self.visLogo()
-
 
     def exec_(self):
         res = self.gui.exec_()
@@ -47,28 +48,32 @@ class firmaOppsett(firmainfo_ui.Ui_firmaOppsett):
             return self.samleInfo()
         return {}
 
+
 ############## FIRMAINFO ###################
 
     def firmaWidgetKart(self):
         return {
-            self.Firmanavn            :  self.firma.firmanavn,
-            self.Organisasjonsnummer  :  self.firma.organisasjonsnummer,
-            self.Kontaktperson        :  self.firma.kontaktperson,
-            self.Epost                :  self.firma.epost,
-            self.Adresse              :  self.firma.adresse,
-            self.Postnummer           :  self.firma.postnummer,
-            self.Poststed             :  self.firma.poststed,
-            self.Telefon              :  self.firma.telefon,
-            self.Mobil                :  self.firma.mobil,
-            self.Telefaks             :  self.firma.telefaks,
-            self.Kontonummer          :  self.firma.kontonummer,
-            self.Vilkar               :  self.firma.vilkar,
-            self.Mva                 :  self.firma.mva,
-            self.Forfall             :  self.firma.forfall,
-            }
+            self.Firmanavn: self.firma.firmanavn,
+            self.Organisasjonsnummer: self.firma.organisasjonsnummer,
+            self.Kontaktperson: self.firma.kontaktperson,
+            self.Epost: self.firma.epost,
+            self.Adresse: self.firma.adresse,
+            self.Postnummer: self.firma.postnummer,
+            self.Poststed: self.firma.poststed,
+            self.Telefon: self.firma.telefon,
+            self.Mobil: self.firma.mobil,
+            self.Telefaks: self.firma.telefaks,
+            self.Kontonummer: self.firma.kontonummer,
+            self.Vilkar: self.firma.vilkar,
+            self.Mva: self.firma.mva,
+            self.Forfall: self.firma.forfall,
+        }
 
     def vis(self):
-        format = { self.Postnummer: "%04i", self.Kontonummer: "%011i", } # må formateres spesielt dersom det begynner med 0, eks. 0921
+        format = {
+            self.Postnummer: "%04i",
+            self.Kontonummer: "%011i",
+        }  # må formateres spesielt dersom det begynner med 0, eks. 0921
         for til, fra in self.firmaWidgetKart().items():
             #debug("fra", fra, type(fra))
             #debug("til", til, type(til))
@@ -124,24 +129,24 @@ class firmaOppsett(firmainfo_ui.Ui_firmaOppsett):
         return r
 
     def oppdater(self):
-        self.firma.firmanavn  = str(self.Firmanavn.text())
+        self.firma.firmanavn = str(self.Firmanavn.text())
         self.firma.organisasjonsnummer = str(self.Organisasjonsnummer.text())
         self.firma.kontaktperson = str(self.Kontaktperson.text())
-        self.firma.epost      = str(self.Epost.text())
-        self.firma.adresse    = str(self.Adresse.toPlainText())
+        self.firma.epost = str(self.Epost.text())
+        self.firma.adresse = str(self.Adresse.toPlainText())
         self.firma.postnummer = self.kanskjetall(self.Postnummer)
-        self.firma.poststed   = str(self.Poststed.text())
-        self.firma.telefon    = self.kanskjetall(self.Telefon)
-        self.firma.mobil      = self.kanskjetall(self.Mobil)
-        self.firma.telefaks   = self.kanskjetall(self.Telefaks)
+        self.firma.poststed = str(self.Poststed.text())
+        self.firma.telefon = self.kanskjetall(self.Telefon)
+        self.firma.mobil = self.kanskjetall(self.Mobil)
+        self.firma.telefaks = self.kanskjetall(self.Telefaks)
         self.firma.kontonummer = self.kanskjetall(self.Kontonummer)
-        self.firma.vilkar     = str(self.Vilkar.toPlainText())
-        self.firma.mva        = int(self.Mva.value())
-        self.firma.forfall    = int(self.Forfall.value())
+        self.firma.vilkar = str(self.Vilkar.toPlainText())
+        self.firma.mva = int(self.Mva.value())
+        self.firma.forfall = int(self.Forfall.value())
         mangler = self.sjekkFirmaMangler()
         if mangler:
-            mangel = 'Du er nødt til å oppgi:\n%s' % ([ mangler[obj].lower() for obj in list(mangler.keys()) ])
-            logging.debug (mangel)
+            mangel = 'Du er nødt til å oppgi:\n%s' % ([mangler[obj].lower() for obj in list(mangler.keys())])
+            logging.debug(mangel)
             QtGui.QMessageBox.critical(self.gui, 'Ufullstendige opplysninger', mangel)
             list(mangler.keys())[0].setFocus()
             return False
@@ -153,10 +158,11 @@ class firmaOppsett(firmainfo_ui.Ui_firmaOppsett):
         for obj in list(kravkart.keys()):
             if isinstance(obj, QtGui.QSpinBox): test = obj.value() > 0
             elif isinstance(obj, QtGui.QComboBox): test = obj.currentText()
-            elif isinstance(obj, (QtGui.QLineEdit,QtGui.QTextEdit)): test = obj.text()
+            elif isinstance(obj, (QtGui.QLineEdit, QtGui.QTextEdit)): test = obj.text()
             if test is None:
                 logging.error('sjekkFirmaMangler: mangler test for % obj')
-            elif test: kravkart.pop(obj)
+            elif test:
+                kravkart.pop(obj)
         return kravkart
 
     def firmaSjekk(self, event=None):
@@ -166,7 +172,7 @@ class firmaOppsett(firmainfo_ui.Ui_firmaOppsett):
         for obj in list(self._kontrollkart.keys()):
             if isinstance(obj, (QtGui.QSpinBox, QtGui.QDoubleSpinBox)): test = obj.value() > 0
             elif isinstance(obj, QtGui.QComboBox): test = obj.currentText()
-            elif isinstance(obj, (QtGui.QLineEdit,QtGui.QTextEdit)): test = obj.text()
+            elif isinstance(obj, (QtGui.QLineEdit, QtGui.QTextEdit)): test = obj.text()
             elif isinstance(obj, QtGui.QPlainTextEdit): test = obj.toPlainText()
             else:
                 logging.error('mangler test for %s (%s)' % (obj, type(obj)))
@@ -187,20 +193,21 @@ class firmaOppsett(firmainfo_ui.Ui_firmaOppsett):
             self.visLogo()
         else:
             startdir = ""
-            logofile = QtGui.QFileDialog.getOpenFileName(self.gui,
+            logofile = QtGui.QFileDialog.getOpenFileName(
+                self.gui,
                 "Velg bildefil for firmaets logo",
                 startdir,
                 'Bildefiler (*.png *.xpm *.jpg *.jpeg *.gif *.bmp *.ppm *.pgm *.pbm)',
-                )
+            )
             if len(str(logofile)) > 0:
-                logging.debug ("Setter ny logo: %s" % logofile)
+                logging.debug("Setter ny logo: %s" % logofile)
 
                 logo = QtGui.QPixmap(logofile)
-                if logo.isNull(): # kunne ikke åpne logo
+                if logo.isNull():  # kunne ikke åpne logo
                     return False
 
                 stream = QtCore.QBuffer()
-                scaledlogo = logo.scaled(QtCore.QSize(360,360), QtCore.Qt.KeepAspectRatio, QtCore.Qt.SmoothTransformation)
+                scaledlogo = logo.scaled(QtCore.QSize(360, 360), QtCore.Qt.KeepAspectRatio, QtCore.Qt.SmoothTransformation)
                 scaledlogo.save(stream, 'PNG')
                 #self.firma.logo = buffer(stream.data())
                 self.firma.logo = buffer(str(stream.data()))

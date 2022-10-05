@@ -17,7 +17,7 @@ try:
 except ImportError:
     from pysqlite2 import dbapi2 as sqlite  # prøv bruker/system-installert modul
 
-from PyQt4 import QtCore
+from PyQt5 import QtCore
 
 from .fakturafeil import *
 
@@ -59,10 +59,8 @@ class fakturaKomponent:
         if egenskap in self._egenskaper:  # denne egenskapen skal lagres i databasen
             if type(verdi) == bool:
                 verdi = int(verdi)  # lagrer bool som int: 0 | 1
-            elif type(verdi) == buffer and len(verdi) == 0:
-                verdi = ''
-            elif type(verdi) == QtCore.QString:
-                verdi = str(verdi)
+            # elif type(verdi) == buffer and len(verdi) == 0:
+            #     verdi = ''
             self.oppdaterEgenskap(egenskap, verdi)  # oppdater databasen
         self.__dict__[egenskap] = verdi  # oppdater lokalt for objektet
 

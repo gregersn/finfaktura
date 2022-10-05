@@ -364,19 +364,19 @@ def lesRessurs(ressurs):
 
     'ressurs' er på formatet ':/sti/navn', for eksempel ':/sql/faktura.sql'
     """
-    from PyQt4 import QtCore
+    from PyQt5 import QtCore
     f = QtCore.QFile(ressurs)
     if not f.open(QtCore.QIODevice.ReadOnly | QtCore.QIODevice.Text):
         raise IOError("Kunne ikke åpne ressursen '%s'" % ressurs)
     t = QtCore.QTextStream(f)
     t.setCodec("UTF-8")
-    s = QtCore.QString(t.readAll())
+    s = t.readAll()
     f.close()
     return s
 
 
 def typeofqt(obj):
-    from PyQt4 import QtGui
+    from PyQt5 import QtGui
     if isinstance(obj, QtGui.QSpinBox): return 'QSpinBox'
     elif isinstance(obj, QtGui.QDoubleSpinBox): return 'QDoubleSpinBox'
     elif isinstance(obj, QtGui.QLineEdit): return 'QLineEdit'
