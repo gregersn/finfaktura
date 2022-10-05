@@ -10,5 +10,7 @@
 
 __version__ = "2.2.2"
 
-__all__ = ['fakturabibliotek','oppgradering','f60','cli', 'sikkerhetskopi', 'okonomi', 'epost', 'historikk', 'ekstra', 'fakturafeil', 'fakturakomponenter', 'rapport', 'gui']
-
+__all__ = [
+    'fakturabibliotek', 'oppgradering', 'f60', 'cli', 'sikkerhetskopi', 'okonomi', 'epost', 'historikk', 'ekstra', 'fakturafeil',
+    'fakturakomponenter', 'rapport', 'gui'
+]

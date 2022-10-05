@@ -28,6 +28,6 @@ def forbered_ressurser():
         print("%s -> %s: %s" % (f, plassering, ok(ret)))
 
 
-def ok(status):
+def ok(status: int):
     if status == 0: return "OK"
     return "FEIL"

@@ -8,18 +8,16 @@
 # $Id$
 ###########################################################################
 
-import types, os, sys, os.path, shutil
-from time import time, strftime, localtime
-import logging, subprocess
+import os, sys, os.path, shutil
+from time import time
+import logging
+from typing import Any, Optional
 import xml.etree.ElementTree  # help py2exe
-try:
-    import sqlite3 as sqlite  # python2.5 har sqlite3 innebygget
-except ImportError:
-    from pysqlite2 import dbapi2 as sqlite  # prøv bruker/system-installert modul
+import sqlite3
 
-from . import historikk, fil
-from .fakturakomponenter import fakturaOppsett, fakturaEpost, fakturaFirmainfo, \
-        fakturaOrdre, fakturaVare, fakturaKunde, fakturaSikkerhetskopi
+from . import fil
+from .fakturakomponenter import FakturaOppsett, FakturaEpost, FakturaFirmainfo, \
+        FakturaOrdre, FakturaVare, FakturaKunde, FakturaSikkerhetskopi
 from .fakturafeil import *
 
 PRODUKSJONSVERSJON = False  # Sett denne til True for å skjule funksjonalitet som ikke er ferdigstilt
@@ -32,14 +30,14 @@ class FakturaBibliotek:
 
     produksjonsversjon = False  # dersom false er vi i utvikling, ellers produksjon
 
-    def __init__(self, db, sjekkVersjon=True):
+    def __init__(self, db: sqlite3.Connection, sjekkVersjon: bool = True):
         self.db = db
         self.c = db.cursor()
         self.__firmainfo = None
-        self.oppsett = fakturaOppsett(db, versjonsjekk=sjekkVersjon, apiversjon=DATABASEVERSJON)
+        self.oppsett = FakturaOppsett(db, versjonsjekk=sjekkVersjon, apiversjon=DATABASEVERSJON)
         try:
-            self.epostoppsett = fakturaEpost(db)
-        except sqlite.DatabaseError as e:
+            self.epostoppsett = FakturaEpost(db)
+        except sqlite3.DatabaseError as e:
             if "no such table" in str(e).lower(): self.epostoppsett = None  ## for gammel versjon
             else: raise
 
@@ -48,35 +46,35 @@ class FakturaBibliotek:
         if v is None: return 2.0  # før versjonsnummeret kom inn i db
         else: return v
 
-    def hentKunde(self, kundeID):
+    def hentKunde(self, kundeID: str):
         #assert(type(kundeID
-        return fakturaKunde(self.db, kundeID)
+        return FakturaKunde(self.db, kundeID)
 
-    def hentKunder(self, inkluderSlettede=False):
-        sql = "SELECT ID FROM %s" % fakturaKunde._tabellnavn
+    def hentKunder(self, inkluderSlettede: bool = False):
+        sql = "SELECT ID FROM %s" % FakturaKunde._tabellnavn
         if not inkluderSlettede: sql += " WHERE slettet IS NULL OR slettet = 0"
         self.c.execute(sql)
-        return [fakturaKunde(self.db, z[0]) for z in self.c.fetchall()]
+        return [FakturaKunde(self.db, z[0]) for z in self.c.fetchall()]
 
     def nyKunde(self):
-        return fakturaKunde(self.db)
+        return FakturaKunde(self.db)
 
-    def hentVarer(self, inkluderSlettede=False, sorterEtterKunde=None):
-        sql = "SELECT ID FROM %s" % fakturaVare._tabellnavn
+    def hentVarer(self, inkluderSlettede: bool = False, sorterEtterKunde: bool = False):
+        sql = "SELECT ID FROM %s" % FakturaVare._tabellnavn
         if not inkluderSlettede: sql += " WHERE slettet IS NULL OR slettet = 0"
-        if sorterEtterKunde is not None:
+        if sorterEtterKunde:
             sql += " ORDER BY "
         self.c.execute(sql)
-        return [fakturaVare(self.db, z[0]) for z in self.c.fetchall()]
+        return [FakturaVare(self.db, z[0]) for z in self.c.fetchall()]
 
     def nyVare(self):
-        return fakturaVare(self.db)
+        return FakturaVare(self.db)
 
-    def hentVare(self, Id):
-        return fakturaVare(self.db, Id)
+    def hentVare(self, Id: str):
+        return FakturaVare(self.db, Id)
 
-    def finnVareEllerLagNy(self, navn, pris, mva, enhet):
-        sql = "SELECT ID FROM %s" % fakturaVare._tabellnavn
+    def finnVareEllerLagNy(self, navn: str, pris: str, mva: str, enhet: int):
+        sql = "SELECT ID FROM %s" % FakturaVare._tabellnavn
         sql += " WHERE navn=? AND pris=? AND mva=?"
         #print sql, navn, pris, mva
         self.c.execute(sql, (
@@ -85,7 +83,7 @@ class FakturaBibliotek:
             mva,
         ))
         try:
-            return fakturaVare(self.db, self.c.fetchone()[0])
+            return FakturaVare(self.db, self.c.fetchone()[0])
         except TypeError:
             # varen finnes ikke, lag ny og returner
             vare = self.nyVare()
@@ -96,20 +94,20 @@ class FakturaBibliotek:
             return vare
 
     def nyOrdre(self, kunde=None, Id=None, ordredato=None, forfall=None):
-        return fakturaOrdre(self.db, kunde=kunde, Id=Id, firma=self.firmainfo(), dato=ordredato, forfall=forfall)
+        return FakturaOrdre(self.db, kunde=kunde, Id=Id, firma=self.firmainfo(), dato=ordredato, forfall=forfall)
 
     def hentOrdrer(self):
-        self.c.execute("SELECT ID FROM %s" % fakturaOrdre._tabellnavn)
-        return [fakturaOrdre(self.db, Id=z[0]) for z in self.c.fetchall()]
+        self.c.execute("SELECT ID FROM %s" % FakturaOrdre._tabellnavn)
+        return [FakturaOrdre(self.db, Id=z[0]) for z in self.c.fetchall()]
 
     def firmainfo(self):
         try:
-            self.__firmainfo.hentEgenskaper()
+            self.__firmainfo.hent_egenskaper()
             self.__firmainfo.sjekkData()
         except AttributeError:
-            self.__firmainfo = fakturaFirmainfo(self.db)
+            self.__firmainfo = FakturaFirmainfo(self.db)
         except FirmainfoFeil:
-            self.__firmainfo = fakturaFirmainfo(self.db)
+            self.__firmainfo = FakturaFirmainfo(self.db)
         return self.__firmainfo
 
     def hentEgenskapVerdier(self, tabell, egenskap):
@@ -117,13 +115,13 @@ class FakturaBibliotek:
         return [str(x[0]) for x in self.c.fetchall() if x[0]]
 
     def lagSikkerhetskopi(self, ordre):
-        s = fakturaSikkerhetskopi(self.db, ordre)
+        s = FakturaSikkerhetskopi(self.db, ordre)
         #historikk.pdfSikkerhetskopi(ordre, True, "lagSikkerhetskopi)")
         return s
 
     def hentSikkerhetskopier(self):
-        self.c.execute("SELECT ID FROM %s" % fakturaSikkerhetskopi._tabellnavn)
-        return [fakturaSikkerhetskopi(self.db, Id=z[0]) for z in self.c.fetchall()]
+        self.c.execute("SELECT ID FROM %s" % FakturaSikkerhetskopi._tabellnavn)
+        return [FakturaSikkerhetskopi(self.db, Id=z[0]) for z in self.c.fetchall()]
 
     def sjekkSikkerhetskopier(self, lagNyAutomatisk=False):
         sql = "SELECT Ordrehode.ID, Sikkerhetskopi.ID FROM Ordrehode LEFT OUTER JOIN Sikkerhetskopi ON Ordrehode.ID=Sikkerhetskopi.ordreID WHERE data IS NULL"
@@ -131,11 +129,11 @@ class FakturaBibliotek:
         ordrer = []
         for z in self.c.fetchall():
             logging.debug("Ordre #%i har ingen gyldig sikkerhetskopi!", z[0])
-            o = fakturaOrdre(self.db, Id=z[0], firma=self.firmainfo())
+            o = FakturaOrdre(self.db, Id=z[0], firma=self.firmainfo())
             if lagNyAutomatisk:
                 # merk evt. gammel sikkerhetskopi som ugyldig
                 if z[1]:
-                    s = fakturaSikkerhetskopi(self.db, Id=z[1])
+                    s = FakturaSikkerhetskopi(self.db, Id=z[1])
                     s.data = False
                 try:
                     self.lagSikkerhetskopi(o)
@@ -177,7 +175,7 @@ class FakturaBibliotek:
     def skrivUt(self, filnavn):
         return fil.vis(filnavn)
 
-    def sendEpost(self, ordre, pdf, tekst=None, transport='auto'):
+    def sendEpost(self, ordre, pdf, tekst: Optional[str] = None, transport: str = 'auto'):
         from . import epost
         if type(transport) == int:
             transport = epost.TRANSPORTMETODER[transport]
@@ -200,7 +198,7 @@ class FakturaBibliotek:
         m.faktura(ordre, pdf, tekst, testmelding=self.produksjonsversjon == False)
         return m.send()
 
-    def testEpost(self, transport='auto'):
+    def testEpost(self, transport: str = 'auto'):
         from . import epost
         if type(transport) == int:
             transport = epost.TRANSPORTMETODER[transport]
@@ -224,7 +222,7 @@ class FakturaBibliotek:
             raise ex
         logging.debug('tester epost. transport: %s', transport)
         m = getattr(epost, transport)()  # laster riktig transport
-        assert (m, epost.epost)
+        assert (m, epost.Epost)
         oppsett = self.epostoppsett
         if transport == 'smtp':
             m.tls(bool(oppsett.smtptls))
@@ -249,25 +247,26 @@ class FakturaBibliotek:
                 return None
 
 
-def lagDatabase(database, sqlfile=None):
+def lagDatabase(database: str, sqlfile: Optional[str] = None):
     "lager databasestruktur. 'database' er filnavn (unicode)"
     try:
-        db = sqlite.connect(os.path.normpath(database.encode('utf8')), isolation_level=None)
+        db = sqlite3.connect(os.path.normpath(database), isolation_level=None)
         return byggDatabase(db, sqlfile)
-    except sqlite.DatabaseError:
+    except sqlite3.DatabaseError:
         raise
         # hmm, kanskje gammel database?
         dbver = sjekkDatabaseVersjon(database)
-        if dbver != sqlite.sqlite_version_info[0]:
-            e = "Databasen din (versjon %s) kan ikke leses av pysqlite, som leser versjon %s" % (dbver, sqlite.sqlite_version_info[0])
+        if dbver != sqlite3.sqlite_version_info[0]:
+            e = "Databasen din (versjon %s) kan ikke leses av pysqlite, som leser versjon %s" % (dbver, sqlite3.sqlite_version_info[0])
             print("FEIL!", e)
             raise DBVersjonFeil(e)
 
 
-def byggDatabase(db, sqlfile=None):
+def byggDatabase(db: sqlite3.Connection, sqlfile: Optional[str] = None):
     "lager databasestruktur. 'db' er et sqlite3.Connection-objekt"
     if sqlfile is not None:
-        sql = file(sqlfile).read()
+        with open(sqlfile, 'r') as f:
+            sql = f.read()
     else:
         sql = str(lesRessurs(':/sql/faktura.sql'))
     db.executescript(sql)
@@ -276,7 +275,7 @@ def byggDatabase(db, sqlfile=None):
     return db
 
 
-def finnDatabasenavn(databasenavn=DATABASENAVN):
+def finnDatabasenavn(databasenavn: str = DATABASENAVN) -> str:
     """finner et egnet sted for databasefila, enten fra miljøvariabler eller i standard plassering.
 
     følgende miljøvariabler påvirker denne funksjonen:
@@ -289,7 +288,7 @@ def finnDatabasenavn(databasenavn=DATABASENAVN):
     """
     db = os.getenv('FAKTURADB')
     if db is not None and (not PRODUKSJONSVERSJON or os.path.exists(db)):
-        return db.decode(sys.getfilesystemencoding())  # returnerer miljøvariabelen $FAKTURADB
+        return db  # returnerer miljøvariabelen $FAKTURADB
     fdir = os.getenv('FAKTURADIR')
     if not fdir:
         #sjekk for utviklermodus
@@ -298,37 +297,38 @@ def finnDatabasenavn(databasenavn=DATABASENAVN):
         #sjekk for windows
         if sys.platform.startswith('win'):
             pdir = os.getenv('USERPROFILE')
+            assert pdir is not None
             fdir = os.path.join(pdir, "finfaktura")
         else:
             #sjekk for mac
             #sjekk for linux
             pdir = os.getenv('HOME')
+            assert pdir is not None
             fdir = os.path.join(pdir, ".finfaktura")
-    fdir = fdir.decode(sys.getfilesystemencoding())
+
     if not os.path.exists(fdir):
         os.mkdir(fdir, 0o700)
     return os.path.join(fdir, databasenavn)
 
 
-def kobleTilDatabase(dbnavn=None):
+def kobleTilDatabase(dbnavn: Optional[str] = None):
     if dbnavn is None:
         dbnavn = finnDatabasenavn()
     logging.debug('skal koble til %s (%s/%s)', dbnavn, repr(dbnavn), type(dbnavn))
-    dbfil = os.path.normpath(os.path.realpath(dbnavn.encode('utf-8')))
+    dbfil = os.path.normpath(os.path.realpath(dbnavn))
     try:
-        db = sqlite.connect(database=os.path.abspath(dbfil), isolation_level=None)  # isolation_level = None gir autocommit-modus
+        db = sqlite3.connect(database=os.path.abspath(dbfil), isolation_level=None)  # isolation_level = None gir autocommit-modus
         logging.debug("Koblet til databasen %s", os.path.abspath(dbfil))
-    except sqlite.DatabaseError as xxx_todo_changeme:
-        (E) = xxx_todo_changeme
-        logging.debug("Vi bruker sqlite %s", sqlite.apilevel)
+        return db
+    except sqlite3.DatabaseError as database_error:
+        logging.debug("Vi bruker sqlite %s", sqlite3.apilevel)
         dbver = sjekkDatabaseVersjon(dbnavn)
         logging.debug("Databasen er sqlite %s", dbver)
-        if sqlite.apilevel != dbver:
-            raise DBVersjonFeil("Databasen er versjon %s, men biblioteket er versjon %s" % (dbver, sqlite.apilevel))
-    return db
+        if sqlite3.apilevel != dbver:
+            raise DBVersjonFeil("Databasen er versjon %s, men biblioteket er versjon %s" % (dbver, sqlite3.apilevel))
 
 
-def sjekkDatabaseVersjon(dbnavn):
+def sjekkDatabaseVersjon(dbnavn: str):
     """ skiller melllom sqlite 2 og 3. Forventer dbnavn i unicode"""
     #http://marc.10east.com/?l=sqlite-users&m=109382344409938&w=2
     #> It is safe to read the first N bytes in a db file ... ?
@@ -343,12 +343,12 @@ def sjekkDatabaseVersjon(dbnavn):
     except IOError:
         return False
     f.close()
-    if 'SQLite 2' in magic: return 2
-    elif 'SQLite format 3' in magic: return 3
+    if 'SQLite 2' in magic: return '2'
+    elif 'SQLite format 3' in magic: return '3'
     else: return False
 
 
-def sikkerhetskopierFil(filnavn):
+def sikkerhetskopierFil(filnavn: str):
     """lager sikkerhetskopi av filnavn -> filnavn~
 
     Forventer filnavn i unicode"""
@@ -359,29 +359,28 @@ def sikkerhetskopierFil(filnavn):
     return shutil.copyfile(f, bkpfil)
 
 
-def lesRessurs(ressurs):
+def lesRessurs(ressurs: str):
     """Leser en intern QT4-ressurs (qrc) og returnerer den som en QString.
 
     'ressurs' er på formatet ':/sti/navn', for eksempel ':/sql/faktura.sql'
     """
-    from PyQt5 import QtCore
-    f = QtCore.QFile(ressurs)
-    if not f.open(QtCore.QIODevice.ReadOnly | QtCore.QIODevice.Text):
+    from PyQt5.QtCore import QFile, QTextStream
+    f = QFile(ressurs)
+    if not f.open(QFile.ReadOnly | QIODevice.OpenModeFlag.Text):
         raise IOError("Kunne ikke åpne ressursen '%s'" % ressurs)
-    t = QtCore.QTextStream(f)
+    t = QTextStream(f)
     t.setCodec("UTF-8")
     s = t.readAll()
     f.close()
     return s
 
 
-def typeofqt(obj):
-    from PyQt5 import QtGui, QtWidgets
+def typeofqt(obj: Any):
+    from PyQt5 import QtWidgets
     if isinstance(obj, QtWidgets.QSpinBox): return 'QSpinBox'
     elif isinstance(obj, QtWidgets.QDoubleSpinBox): return 'QDoubleSpinBox'
     elif isinstance(obj, QtWidgets.QLineEdit): return 'QLineEdit'
     elif isinstance(obj, QtWidgets.QTextEdit): return 'QTextEdit'
     elif isinstance(obj, QtWidgets.QPlainTextEdit): return 'QPlainTextEdit'
-    elif isinstance(obj, QtWidgets.QHtmlTextEdit): return 'QHtmlTextEdit'
     elif isinstance(obj, QtWidgets.QComboBox): return 'QComboBox'
     return "QWidget"

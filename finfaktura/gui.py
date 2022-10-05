@@ -564,14 +564,14 @@ class FinFaktura(QtWidgets.QMainWindow):  #Ui_MainWindow): ## leser gui fra fakt
             pdf.fyll()
         except FirmainfoFeil as xxx_todo_changeme3:
             (E) = xxx_todo_changeme3
-            historikk.pdfEpost(ordre, False, "firmainfofeil: %s" % E)
+            historikk.PDFEpost(ordre, False, "firmainfofeil: %s" % E)
             self.alert("Du må fylle ut firmainfo først:\n%s" % E)
             self.visFirmaOppsett()
             return
         except KundeFeil as xxx_todo_changeme4:
             (E) = xxx_todo_changeme4
             self.alert("Kan ikke lage PDF!\nÅrsak: %s" % E)
-            historikk.pdfEpost(ordre, False, "kundefeil: %s" % E)
+            historikk.PDFEpost(ordre, False, "kundefeil: %s" % E)
             return
         if Type == "epost":
             res = pdf.lagEpost()
@@ -580,14 +580,14 @@ class FinFaktura(QtWidgets.QMainWindow):  #Ui_MainWindow): ## leser gui fra fakt
         else:
             res = pdf.lagPost()
         if not res:
-            historikk.pdfEpost(ordre, False, "ukjent grunn")
+            historikk.PDFEpost(ordre, False, "ukjent grunn")
             self.alert("Kunne ikke lage PDF! ('%s')" % pdf.filnavn)
         else:
             if Type == "epost":
-                historikk.pdfEpost(ordre, True, "interaktivt")
+                historikk.PDFEpost(ordre, True, "interaktivt")
                 self.visEpostfaktura(ordre, pdf.filnavn)
             elif Type == "papir":
-                historikk.pdfPapir(ordre, True, "interaktivt")
+                historikk.PDFPapir(ordre, True, "interaktivt")
                 if self.JaNei("Blanketten er laget. Vil du skrive den ut nå?"):
                     try:
                         suksess = pdf.skrivUt()
@@ -595,7 +595,7 @@ class FinFaktura(QtWidgets.QMainWindow):  #Ui_MainWindow): ## leser gui fra fakt
                         logging.debug(e)
                         self.alert(str(e))
                         suksess = False
-                    historikk.utskrift(ordre, suksess, "interaktivt")
+                    historikk.Utskrift(ordre, suksess, "interaktivt")
                 else:
                     self.obs("Blanketten er lagret med filnavn: %s" % pdf.filnavn)
 
@@ -622,7 +622,7 @@ class FinFaktura(QtWidgets.QMainWindow):  #Ui_MainWindow): ## leser gui fra fakt
             self.obs('Betalingsdato kan ikke være i fremtiden')
             return False
         ordre.betal(dato)
-        historikk.betalt(ordre, True, 'brukerklikk')
+        historikk.Betalt(ordre, True, 'brukerklikk')
         self.visFaktura()
 
     def avbetalFaktura(self):
@@ -635,7 +635,7 @@ class FinFaktura(QtWidgets.QMainWindow):  #Ui_MainWindow): ## leser gui fra fakt
         #self.alert(u"Du kan ikke fjerne betaldenne ordren, den er betalt.")
         if self.JaNei("Vil du virkelig fjerne betalt-status på ordre nr %s?" % ordre.ID):
             ordre.fjernBetalt()
-            historikk.avbetalt(ordre, True, 'brukerklikk')
+            historikk.Avbetalt(ordre, True, 'brukerklikk')
             self.visFaktura()
 
     def kansellerFaktura(self):
@@ -648,7 +648,7 @@ class FinFaktura(QtWidgets.QMainWindow):  #Ui_MainWindow): ## leser gui fra fakt
             self.alert("Du kan ikke kansellere denne ordren, den er betalt.")
         elif self.JaNei("Vil du virkelig kansellere ordre nr %s?" % ordre.ID):
             ordre.settKansellert()
-            historikk.kansellert(ordre, True, 'brukerklikk')
+            historikk.Kansellert(ordre, True, 'brukerklikk')
             self.visFaktura()
 
     def avkansellerFaktura(self):
@@ -658,7 +658,7 @@ class FinFaktura(QtWidgets.QMainWindow):  #Ui_MainWindow): ## leser gui fra fakt
             self.alert("Ingen faktura er valgt")
             return
         ordre.settKansellert(False)
-        historikk.avKansellert(ordre, True, 'brukerklikk')
+        historikk.AvKansellert(ordre, True, 'brukerklikk')
         self.visFaktura()
 
     def purrFaktura(self):
@@ -667,7 +667,7 @@ class FinFaktura(QtWidgets.QMainWindow):  #Ui_MainWindow): ## leser gui fra fakt
         except IndexError:
             self.alert("Ingen faktura er valgt")
             return
-        historikk.purret(ordre, True, 'brukerklikk')
+        historikk.Purret(ordre, True, 'brukerklikk')
 
     def inkassoFaktura(self):
         try:
@@ -675,7 +675,7 @@ class FinFaktura(QtWidgets.QMainWindow):  #Ui_MainWindow): ## leser gui fra fakt
         except IndexError:
             self.alert("Ingen faktura er valgt")
             return
-        historikk.sendtTilInkasso(ordre, True, 'brukerklikk')
+        historikk.SendtTilInkasso(ordre, True, 'brukerklikk')
 
     def visEpostfaktura(self, ordre, pdfFilnavn):
         epostboks = gui_sendepost.sendEpost(self, ordre)
@@ -694,7 +694,7 @@ class FinFaktura(QtWidgets.QMainWindow):  #Ui_MainWindow): ## leser gui fra fakt
             #historikk.epostSendt(ordre, 0, f) ## TODO: logg feilmelding
             raise
         else:
-            historikk.epostSendt(ordre, True, "Tid: %s, transport: %s" % (time(), self.faktura.epostoppsett.transport))
+            historikk.EpostSendt(ordre, True, "Tid: %s, transport: %s" % (time(), self.faktura.epostoppsett.transport))
             self.obs('Fakturaen er sendt')
 
 ################## KUNDER ###########################

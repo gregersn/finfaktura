@@ -9,16 +9,16 @@
 # $Id$
 ###########################################################################
 
-import sys, types, os, os.path, logging
+import os, os.path, logging
 import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.base import MIMEBase
 from email.mime.text import MIMEText
-from email import encoders, generator
-from email.header import Header, decode_header
-from email.utils import parseaddr
-import email.iterators
+from email import encoders
+from email.header import Header
+
 import socket
+from typing import Optional
 
 TRANSPORTMETODER = ['auto', 'smtp', 'sendmail']
 
@@ -35,7 +35,7 @@ class IkkeImplementert(Exception):
     pass
 
 
-class epost:
+class Epost:
 
     charset = 'iso-8859-15'  # epostens tegnsett
     kopi = None
@@ -44,7 +44,12 @@ class epost:
     testmelding = True
     vedlegg = []
 
-    def faktura(self, ordre, pdfFilnavn, tekst=None, fra=None, testmelding=False):
+    def faktura(self,
+                ordre: FakturaOrdre,
+                pdfFilnavn: str,
+                tekst: Optional[str] = None,
+                fra: Optional[str] = None,
+                testmelding: bool = False):
         if not type(pdfFilnavn) in (str, ):
             raise UgyldigVerdi('pdfFilnavn skal være tekst (ikke "%s")' % type(pdfFilnavn))
         self.ordre = ordre
@@ -106,10 +111,10 @@ class epost:
         self.passord = passord
 
     def send(self):
-        pass
+        return True
 
     def test(self):
-        pass
+        return True
 
     def kutt(self, s, l=30):
         assert (type(s) in (str, ))
@@ -139,7 +144,7 @@ class epost:
             return False
 
 
-class smtp(epost):
+class SMTP(Epost):
     smtpserver = 'localhost'
     smtpport = 25
     _tls = False
@@ -211,7 +216,7 @@ class smtp(epost):
         return True
 
 
-class sendmail(epost):
+class Sendmail(Epost):
     bin = '/usr/lib/sendmail'
     _auth = False
 
@@ -254,7 +259,7 @@ class sendmail(epost):
         return True
 
 
-class dump(epost):
+class Dump(Epost):
 
     def send(self):
         print(self.mimemelding().as_string())

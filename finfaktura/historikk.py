@@ -8,13 +8,16 @@
 # $Id$
 ###########################################################################
 
-from . import fakturakomponenter
-import types, sys, time
-import logging
+import sqlite3
+import time
+from typing import Optional
+from .fakturakomponenter import FakturaKomponent
 
-class fakturaHandling(fakturakomponenter.fakturaKomponent):#(fakturabibliotek.fakturaKomponent):
+
+class FakturaHandling(FakturaKomponent):  #(fakturabibliotek.fakturaKomponent):
     _tabellnavn = "Handling"
-    def __init__(self, db, Id = None, navn = None):
+
+    def __init__(self, db: sqlite3.Connection, Id: Optional[int] = None, navn: Optional[str] = None):
         self.db = db
         self.navn = navn
         if Id is None:
@@ -22,11 +25,12 @@ class fakturaHandling(fakturakomponenter.fakturaKomponent):#(fakturabibliotek.fa
         self._id = Id
 
     def nyId(self):
-        self.c.execute("INSERT INTO %s (ID, navn) VALUES (NULL, ?)" % self._tabellnavn, (self.navn,))
+        self.c.execute("INSERT INTO %s (ID, navn) VALUES (NULL, ?)" % self._tabellnavn, (self.navn, ))
         self.db.commit()
         return self.c.lastrowid
 
-class historiskHandling:
+
+class HistoriskHandling:
     handlingID = 0
     dato = 0
     suksess = 0
@@ -36,27 +40,28 @@ class historiskHandling:
     db = None
 
     def handling(self):
-        return fakturaHandling(self.db, self.handlingID)
+        return FakturaHandling(self.db, self.handlingID)
 
     def settHandling(self, handling):
-        assert isinstance(handling, fakturaHandling)
+        assert isinstance(handling, FakturaHandling)
         self.handlingID = handling._id
         return True
 
     def finnHandling(self, navn):
-        assert type(navn) in (str,)
-        self.c.execute('SELECT ID FROM Handling WHERE navn=?', (navn,))
-        return fakturaHandling(self.db, self.c.fetchone()[0], navn)
+        assert type(navn) in (str, )
+        self.c.execute('SELECT ID FROM Handling WHERE navn=?', (navn, ))
+        return FakturaHandling(self.db, self.c.fetchone()[0], navn)
 
     def registrerHandling(self):
         #skriver til databasen
-        self.c.execute("INSERT INTO Historikk (ordreID, dato, handlingID, suksess, forklaring) VALUES (?,?,?,?,?)", (self.ordreID, self.dato, self.handlingID, (self.suksess and 1) or 0, self.forklaring))
+        self.c.execute("INSERT INTO Historikk (ordreID, dato, handlingID, suksess, forklaring) VALUES (?,?,?,?,?)",
+                       (self.ordreID, self.dato, self.handlingID, (self.suksess and 1) or 0, self.forklaring))
         self.db.commit()
 
     def __init__(self, ordre, suksess, forklaring=None):
-        assert isinstance(ordre, fakturakomponenter.fakturaOrdre)#fakturabibliotek.fakturaOrdre)
+        assert isinstance(ordre, fakturakomponenter.FakturaOrdre)  #fakturabibliotek.fakturaOrdre)
         self.db = ordre.db
-        self.c  = self.db.cursor()
+        self.c = self.db.cursor()
         self.ordreID = ordre.ID
         self.dato = time.mktime(time.localtime())
         self.suksess = suksess
@@ -65,54 +70,70 @@ class historiskHandling:
             self.settHandling(self.finnHandling(self.navn))
         self.registrerHandling()
 
-class opprettet(historiskHandling):
+
+class Opprettet(HistoriskHandling):
     navn = 'opprettet'
 
-class forfalt(historiskHandling):
+
+class Forfalt(HistoriskHandling):
     navn = 'forfalt'
 
-class markertForfalt(historiskHandling):
+
+class MarkertForfalt(HistoriskHandling):
     navn = 'markertForfalt'
 
-class purret(historiskHandling):
+
+class Purret(HistoriskHandling):
     navn = 'purret'
 
-class betalt(historiskHandling):
+
+class Betalt(HistoriskHandling):
     navn = 'betalt'
 
-class avbetalt(historiskHandling):
+
+class Avbetalt(HistoriskHandling):
     navn = 'avBetalt'
 
-class kansellert(historiskHandling):
+
+class Kansellert(HistoriskHandling):
     navn = 'kansellert'
 
-class avKansellert(historiskHandling):
+
+class AvKansellert(HistoriskHandling):
     navn = 'avKansellert'
 
-class sendtTilInkasso(historiskHandling):
+
+class SendtTilInkasso(HistoriskHandling):
     navn = 'sendtTilInkasso'
 
-class utskrift(historiskHandling):
+
+class Utskrift(HistoriskHandling):
     navn = 'utskrift'
 
-class epostSendt(historiskHandling):
+
+class EpostSendt(HistoriskHandling):
     navn = 'epostSendt'
 
-class epostSendtSmtp(historiskHandling):
+
+class EpostSendtSmtp(HistoriskHandling):
     navn = 'epostSendtSmtp'
 
-class epostSendtGmail(historiskHandling):
+
+class EpostSendtGmail(HistoriskHandling):
     navn = 'epostSendtGmail'
 
-class epostSendtSendmail(historiskHandling):
+
+class EpostSendtSendmail(HistoriskHandling):
     navn = 'epostSendtSendmail'
 
-class pdfEpost(historiskHandling):
+
+class PDFEpost(HistoriskHandling):
     navn = 'pdfEpost'
 
-class pdfPapir(historiskHandling):
+
+class PDFPapir(HistoriskHandling):
     navn = 'pdfPapir'
 
-class pdfSikkerhetskopi(historiskHandling):
-    navn = 'pdfSikkerhetskopi'
 
+class PDFSikkerhetskopi(HistoriskHandling):
+    navn = 'pdfSikkerhetskopi'

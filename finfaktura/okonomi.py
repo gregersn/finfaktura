@@ -10,7 +10,7 @@
 ###########################################################################
 
 import logging
-from .fakturakomponenter import fakturaOrdre
+from .fakturakomponenter import FakturaOrdre
 
 
 class ordreHenter:
@@ -58,10 +58,10 @@ class ordreHenter:
 
     def hentOrdrer(self):
         self.c.execute(self._sql())
-        return [fakturaOrdre(self.db, Id=z[0]) for z in self.c.fetchall()]
+        return [FakturaOrdre(self.db, Id=z[0]) for z in self.c.fetchall()]
 
     def _sql(self):
-        s = "SELECT Ordrehode.ID FROM %s" % fakturaOrdre._tabellnavn
+        s = "SELECT Ordrehode.ID FROM %s" % FakturaOrdre._tabellnavn
         if self.vare:
             # SELECT Ordrehode.ID FROM Ordrehode LEFT OUTER JOIN Ordrelinje ON Ordrehode.ID=Ordrelinje.ordrehodeID WHERE vareID=3;
             s += " LEFT OUTER JOIN Ordrelinje ON Ordrehode.ID=Ordrelinje.ordrehodeID "
