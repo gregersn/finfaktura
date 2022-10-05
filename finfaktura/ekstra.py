@@ -20,7 +20,7 @@ def forbered_ressurser():
     ]
 
     for f in ui_files:
-        ret = subprocess.call(['pyuic5', '-x', '-o', os.path.splitext(f)[0] + '_ui.py', f])
+        ret = subprocess.call(['pyuic5', '--import-from=finfaktura.ui', '-x', '-o', os.path.splitext(f)[0] + '_ui.py', f])
         print("%s: %s" % (f, ok(ret)))
     for f in rc_files:
         plassering = os.path.join('finfaktura', 'ui', os.path.splitext(f)[0] + '_rc.py')

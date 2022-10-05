@@ -9,7 +9,7 @@ do
   F=$(basename "$f" .ui);
   echo ".. $F.ui";
 #   echo pyuic4 -o "${PREFIX}finfaktura/ui/${F}_ui.py" "$f";
-  pyuic5 -o "${PREFIX}finfaktura/ui/${F}_ui.py" "$f";
+  pyuic5 --import-from=finfaktura.ui -o "${PREFIX}finfaktura/ui/${F}_ui.py" "$f";
 done
 
 echo "Forbereder QRC (ressurser)";
