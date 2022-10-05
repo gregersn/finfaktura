@@ -1,4 +1,4 @@
-#!/usr/bin/python -d
+#!/usr/bin/env python3 -d
 # -*- coding:utf8 -*-
 ###########################################################################
 #    Copyright (C) 2005-2009 Håvard Gulldahl

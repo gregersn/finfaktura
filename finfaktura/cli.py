@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python3
 # -*- coding:utf-8 -*-
 """cli-magi"""
 ###########################################################################
@@ -12,6 +12,7 @@
 
 import sys
 from .fakturabibliotek import FakturaBibliotek, kobleTilDatabase
+
 
 def cli_faktura():
     db = kobleTilDatabase()
@@ -36,7 +37,7 @@ def cli_faktura():
     SUM: %.2f kr (derav mva: %.2f)
     ===== """ % (kunde, antall, vare.enhet, vare, tekst, sum, mva))
     ja = CLIInput("NEI/ja (Enter for å avbryte): ")
-    if not(len(ja) > 0 and ja.strip().lower()[0] == "j"):
+    if not (len(ja) > 0 and ja.strip().lower()[0] == "j"):
         return False
     firma = bib.firmainfo()
     ordre = bib.nyOrdre(kunde)
@@ -59,15 +60,15 @@ def cli_faktura():
     db.close()
 
 
-
 def CLIenkoding():
     "Prøver å finne den gjeldende enkodingen på input"
     import os
-    for z in ('LANG','LC_CTYPE','LC_ALL'):
+    for z in ('LANG', 'LC_CTYPE', 'LC_ALL'):
         if z in os.environ:
             k = os.environ[z].lower()
             if k.find('utf8') != -1 or k.find('utf-8') != -1: return 'utf8'
     return 'latin1'
+
 
 def CLIListe(liste, tekst=None):
     from pprint import pprint
@@ -92,6 +93,7 @@ def CLIListe(liste, tekst=None):
         else:
             idx = int(ret) - 1
             return liste[idx]
+
 
 def CLIInput(tekst):
     try:

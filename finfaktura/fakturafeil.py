@@ -1,4 +1,4 @@
-#!/usr/bin/python -d
+#!/usr/bin/env python3 -d
 # -*-*- coding:utf8 -*-*-
 ###########################################################################
 #    Copyright (C) 2005-2008 Håvard Gulldahl
@@ -9,18 +9,50 @@
 # $Id$
 ###########################################################################
 
-class FakturaFeil(Exception): pass
-class KundeFeil(Exception): pass
-class DBKorruptFeil(Exception): pass
-class DBGammelFeil(Exception): pass
-class DBNyFeil(Exception): pass
-class DBTomFeil(Exception): pass
-class DBVersjonFeil(Exception): pass
-class FirmainfoFeil(Exception): pass
-class SikkerhetskopiFeil(Exception): pass
-class PDFFeil(Exception): pass
-class RessurserManglerFeil(Exception): pass
-class InstallasjonsFeil(Exception): pass
+
+class FakturaFeil(Exception):
+    pass
 
 
+class KundeFeil(Exception):
+    pass
 
+
+class DBKorruptFeil(Exception):
+    pass
+
+
+class DBGammelFeil(Exception):
+    pass
+
+
+class DBNyFeil(Exception):
+    pass
+
+
+class DBTomFeil(Exception):
+    pass
+
+
+class DBVersjonFeil(Exception):
+    pass
+
+
+class FirmainfoFeil(Exception):
+    pass
+
+
+class SikkerhetskopiFeil(Exception):
+    pass
+
+
+class PDFFeil(Exception):
+    pass
+
+
+class RessurserManglerFeil(Exception):
+    pass
+
+
+class InstallasjonsFeil(Exception):
+    pass
