@@ -9,44 +9,43 @@
 ###########################################################################
 
 import types, os, sys, os.path, shutil
-from string import join
 from time import time, strftime, localtime
 import logging, subprocess
-import xml.etree.ElementTree # help py2exe
+import xml.etree.ElementTree  # help py2exe
 try:
-    import sqlite3 as sqlite # python2.5 har sqlite3 innebygget
+    import sqlite3 as sqlite  # python2.5 har sqlite3 innebygget
 except ImportError:
-    from pysqlite2 import dbapi2 as sqlite # prøv bruker/system-installert modul
+    from pysqlite2 import dbapi2 as sqlite  # prøv bruker/system-installert modul
 
 from . import historikk, fil
 from .fakturakomponenter import fakturaOppsett, fakturaEpost, fakturaFirmainfo, \
         fakturaOrdre, fakturaVare, fakturaKunde, fakturaSikkerhetskopi
 from .fakturafeil import *
 
-PRODUKSJONSVERSJON=False # Sett denne til True for å skjule funksjonalitet som ikke er ferdigstilt
-DATABASEVERSJON=3.1
-DATABASENAVN="faktura.db"
+PRODUKSJONSVERSJON = False  # Sett denne til True for å skjule funksjonalitet som ikke er ferdigstilt
+DATABASEVERSJON = 3.1
+DATABASENAVN = "faktura.db"
 #DATABASECONVERTERS={"pdf":pdfdataToType}
 
 
 class FakturaBibliotek:
 
-    produksjonsversjon = False # dersom false er vi i utvikling, ellers produksjon
+    produksjonsversjon = False  # dersom false er vi i utvikling, ellers produksjon
 
     def __init__(self, db, sjekkVersjon=True):
         self.db = db
-        self.c  = db.cursor()
+        self.c = db.cursor()
         self.__firmainfo = None
         self.oppsett = fakturaOppsett(db, versjonsjekk=sjekkVersjon, apiversjon=DATABASEVERSJON)
         try:
             self.epostoppsett = fakturaEpost(db)
         except sqlite.DatabaseError as e:
-            if "no such table" in str(e).lower(): self.epostoppsett = None ## for gammel versjon
+            if "no such table" in str(e).lower(): self.epostoppsett = None  ## for gammel versjon
             else: raise
 
     def versjon(self):
         v = self.oppsett.hentVersjon()
-        if v is None: return 2.0 # før versjonsnummeret kom inn i db
+        if v is None: return 2.0  # før versjonsnummeret kom inn i db
         else: return v
 
     def hentKunde(self, kundeID):
@@ -80,7 +79,11 @@ class FakturaBibliotek:
         sql = "SELECT ID FROM %s" % fakturaVare._tabellnavn
         sql += " WHERE navn=? AND pris=? AND mva=?"
         #print sql, navn, pris, mva
-        self.c.execute(sql, (navn.strip(), pris, mva,))
+        self.c.execute(sql, (
+            navn.strip(),
+            pris,
+            mva,
+        ))
         try:
             return fakturaVare(self.db, self.c.fetchone()[0])
         except TypeError:
@@ -92,12 +95,12 @@ class FakturaBibliotek:
             vare.enhet = enhet.strip()
             return vare
 
-    def nyOrdre(self, kunde = None, Id = None, ordredato = None, forfall = None):
+    def nyOrdre(self, kunde=None, Id=None, ordredato=None, forfall=None):
         return fakturaOrdre(self.db, kunde=kunde, Id=Id, firma=self.firmainfo(), dato=ordredato, forfall=forfall)
 
     def hentOrdrer(self):
         self.c.execute("SELECT ID FROM %s" % fakturaOrdre._tabellnavn)
-        return [ fakturaOrdre(self.db, Id=z[0]) for z in self.c.fetchall() ]
+        return [fakturaOrdre(self.db, Id=z[0]) for z in self.c.fetchall()]
 
     def firmainfo(self):
         try:
@@ -120,7 +123,7 @@ class FakturaBibliotek:
 
     def hentSikkerhetskopier(self):
         self.c.execute("SELECT ID FROM %s" % fakturaSikkerhetskopi._tabellnavn)
-        return [ fakturaSikkerhetskopi(self.db, Id = z[0]) for z in self.c.fetchall() ]
+        return [fakturaSikkerhetskopi(self.db, Id=z[0]) for z in self.c.fetchall()]
 
     def sjekkSikkerhetskopier(self, lagNyAutomatisk=False):
         sql = "SELECT Ordrehode.ID, Sikkerhetskopi.ID FROM Ordrehode LEFT OUTER JOIN Sikkerhetskopi ON Ordrehode.ID=Sikkerhetskopi.ordreID WHERE data IS NULL"
@@ -184,7 +187,7 @@ class FakturaBibliotek:
                 return False
             self.epostoppsett.transport = transport
 
-        m = getattr(epost,transport)() # laster riktig transport (smtp/sendmail)
+        m = getattr(epost, transport)()  # laster riktig transport (smtp/sendmail)
         oppsett = self.epostoppsett
         if transport == 'smtp':
             m.tls(bool(oppsett.smtptls))
@@ -194,7 +197,7 @@ class FakturaBibliotek:
             m.settSti(oppsett.sendmailsti)
         if oppsett.bcc is not None and len(oppsett.bcc) > 0:
             m.settKopi(oppsett.bcc)
-        m.faktura(ordre, pdf, tekst, testmelding=self.produksjonsversjon==False)
+        m.faktura(ordre, pdf, tekst, testmelding=self.produksjonsversjon == False)
         return m.send()
 
     def testEpost(self, transport='auto'):
@@ -203,7 +206,7 @@ class FakturaBibliotek:
             transport = epost.TRANSPORTMETODER[transport]
         logging.debug('skal teste transport: %s', transport)
         # finn riktig transport (gmail/smtp/sendmail)
-        if not transport in epost.TRANSPORTMETODER: #ugyldig transport oppgitt
+        if not transport in epost.TRANSPORTMETODER:  #ugyldig transport oppgitt
             transport = 'auto'
         if transport == 'auto':
             feil = []
@@ -220,8 +223,8 @@ class FakturaBibliotek:
             #return (False, transport, epost.TRANSPORTMETODER)
             raise ex
         logging.debug('tester epost. transport: %s', transport)
-        m = getattr(epost,transport)() # laster riktig transport
-        assert(m, epost.epost)
+        m = getattr(epost, transport)()  # laster riktig transport
+        assert (m, epost.epost)
         oppsett = self.epostoppsett
         if transport == 'smtp':
             m.tls(bool(oppsett.smtptls))
@@ -257,8 +260,9 @@ def lagDatabase(database, sqlfile=None):
         dbver = sjekkDatabaseVersjon(database)
         if dbver != sqlite.sqlite_version_info[0]:
             e = "Databasen din (versjon %s) kan ikke leses av pysqlite, som leser versjon %s" % (dbver, sqlite.sqlite_version_info[0])
-            print("FEIL!",e)
+            print("FEIL!", e)
             raise DBVersjonFeil(e)
+
 
 def byggDatabase(db, sqlfile=None):
     "lager databasestruktur. 'db' er et sqlite3.Connection-objekt"
@@ -267,10 +271,10 @@ def byggDatabase(db, sqlfile=None):
     else:
         sql = str(lesRessurs(':/sql/faktura.sql'))
     db.executescript(sql)
-    db.cursor().execute("INSERT INTO Oppsett (ID, databaseversjon, fakturakatalog) VALUES (1, ?, ?)",
-        (DATABASEVERSJON, '~'))
+    db.cursor().execute("INSERT INTO Oppsett (ID, databaseversjon, fakturakatalog) VALUES (1, ?, ?)", (DATABASEVERSJON, '~'))
     db.commit()
     return db
+
 
 def finnDatabasenavn(databasenavn=DATABASENAVN):
     """finner et egnet sted for databasefila, enten fra miljøvariabler eller i standard plassering.
@@ -285,12 +289,12 @@ def finnDatabasenavn(databasenavn=DATABASENAVN):
     """
     db = os.getenv('FAKTURADB')
     if db is not None and (not PRODUKSJONSVERSJON or os.path.exists(db)):
-        return db.decode(sys.getfilesystemencoding()) # returnerer miljøvariabelen $FAKTURADB
+        return db.decode(sys.getfilesystemencoding())  # returnerer miljøvariabelen $FAKTURADB
     fdir = os.getenv('FAKTURADIR')
     if not fdir:
         #sjekk for utviklermodus
         if not PRODUKSJONSVERSJON:
-            return databasenavn # returner DATABASENAVN ('faktura.db'?) i samme katalog
+            return databasenavn  # returner DATABASENAVN ('faktura.db'?) i samme katalog
         #sjekk for windows
         if sys.platform.startswith('win'):
             pdir = os.getenv('USERPROFILE')
@@ -305,13 +309,14 @@ def finnDatabasenavn(databasenavn=DATABASENAVN):
         os.mkdir(fdir, 0o700)
     return os.path.join(fdir, databasenavn)
 
+
 def kobleTilDatabase(dbnavn=None):
     if dbnavn is None:
         dbnavn = finnDatabasenavn()
     logging.debug('skal koble til %s (%s/%s)', dbnavn, repr(dbnavn), type(dbnavn))
     dbfil = os.path.normpath(os.path.realpath(dbnavn.encode('utf-8')))
     try:
-        db = sqlite.connect(database=os.path.abspath(dbfil), isolation_level=None) # isolation_level = None gir autocommit-modus
+        db = sqlite.connect(database=os.path.abspath(dbfil), isolation_level=None)  # isolation_level = None gir autocommit-modus
         logging.debug("Koblet til databasen %s", os.path.abspath(dbfil))
     except sqlite.DatabaseError as xxx_todo_changeme:
         (E) = xxx_todo_changeme
@@ -321,6 +326,7 @@ def kobleTilDatabase(dbnavn=None):
         if sqlite.apilevel != dbver:
             raise DBVersjonFeil("Databasen er versjon %s, men biblioteket er versjon %s" % (dbver, sqlite.apilevel))
     return db
+
 
 def sjekkDatabaseVersjon(dbnavn):
     """ skiller melllom sqlite 2 og 3. Forventer dbnavn i unicode"""
@@ -332,8 +338,8 @@ def sjekkDatabaseVersjon(dbnavn):
     #array that you can search for "SQLite 2" or "SQLite format 3".
 
     try:
-        f=open(dbnavn.encode(sys.getfilesystemencoding()))
-        magic=f.read(33)
+        f = open(dbnavn.encode(sys.getfilesystemencoding()))
+        magic = f.read(33)
     except IOError:
         return False
     f.close()
@@ -341,16 +347,17 @@ def sjekkDatabaseVersjon(dbnavn):
     elif 'SQLite format 3' in magic: return 3
     else: return False
 
+
 def sikkerhetskopierFil(filnavn):
     """lager sikkerhetskopi av filnavn -> filnavn~
 
     Forventer filnavn i unicode"""
     f = filnavn.encode(sys.getfilesystemencoding())
-    logging.debug('skal sikkerhetskopiere %s (altså %s)',
-                  repr(filnavn), repr(f))
+    logging.debug('skal sikkerhetskopiere %s (altså %s)', repr(filnavn), repr(f))
     assert os.path.exists(f)
     bkpfil = "%s-%s~" % (f, int(time()))
     return shutil.copyfile(f, bkpfil)
+
 
 def lesRessurs(ressurs):
     """Leser en intern QT4-ressurs (qrc) og returnerer den som en QString.
@@ -367,14 +374,14 @@ def lesRessurs(ressurs):
     f.close()
     return s
 
-def typeofqt(obj):
-  from PyQt4 import QtGui
-  if isinstance(obj, QtGui.QSpinBox): return 'QSpinBox'
-  elif isinstance(obj, QtGui.QDoubleSpinBox): return 'QDoubleSpinBox'
-  elif isinstance(obj, QtGui.QLineEdit): return 'QLineEdit'
-  elif isinstance(obj, QtGui.QTextEdit): return 'QTextEdit'
-  elif isinstance(obj, QtGui.QPlainTextEdit): return 'QPlainTextEdit'
-  elif isinstance(obj, QtGui.QHtmlTextEdit): return 'QHtmlTextEdit'
-  elif isinstance(obj, QtGui.QComboBox): return 'QComboBox'
-  return "QWidget"
 
+def typeofqt(obj):
+    from PyQt4 import QtGui
+    if isinstance(obj, QtGui.QSpinBox): return 'QSpinBox'
+    elif isinstance(obj, QtGui.QDoubleSpinBox): return 'QDoubleSpinBox'
+    elif isinstance(obj, QtGui.QLineEdit): return 'QLineEdit'
+    elif isinstance(obj, QtGui.QTextEdit): return 'QTextEdit'
+    elif isinstance(obj, QtGui.QPlainTextEdit): return 'QPlainTextEdit'
+    elif isinstance(obj, QtGui.QHtmlTextEdit): return 'QHtmlTextEdit'
+    elif isinstance(obj, QtGui.QComboBox): return 'QComboBox'
+    return "QWidget"

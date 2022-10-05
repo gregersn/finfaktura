@@ -9,7 +9,7 @@
 ###########################################################################
 
 import sys, time, os, types
-from string import join, split
+
 import logging, subprocess
 
 from . import fakturafeil, fil
@@ -19,10 +19,11 @@ try:
     from reportlab.lib.styles import getSampleStyleSheet
     from reportlab.lib.pagesizes import A4
     from reportlab.platypus import Paragraph, SimpleDocTemplate
-    REPORTLAB=True
+    REPORTLAB = True
 except ImportError:
-    REPORTLAB=False
+    REPORTLAB = False
     #raise
+
 
 class rapport:
     'Lager økonomisk rapport på pdf'
@@ -34,20 +35,21 @@ class rapport:
         if filnavn is None:
             import tempfile
             f, self.filnavn = tempfile.mkstemp(suffix='.pdf', prefix='rapport-')
-            os.close(f) # lukk fil-deskriptoren
+            os.close(f)  # lukk fil-deskriptoren
         else:
             self.filnavn = filnavn
         self.info = rapportinfo
         self.stiler = getSampleStyleSheet()
         self.normal = self.stiler['BodyText']
-        self.liste  = self.stiler['Bullet']
+        self.liste = self.stiler['Bullet']
         self.overskrift = self.stiler['Heading3']
         self.seksjonover = self.stiler['Heading2']
         #print dir(self.seksjonover)
         self.tittel = self.stiler['Heading1']
         self.flow = []
         self.flow.append(Paragraph('Fakturaer hos %s' % self.tryggXml(self.info['firma'].firmanavn), self.tittel))
-        self.flow.append(Paragraph('Generert av <i>Fryktelig Fin Faktura</i> den %s' % time.strftime("%Y-%m-%d", time.localtime()), self.normal))
+        self.flow.append(
+            Paragraph('Generert av <i>Fryktelig Fin Faktura</i> den %s' % time.strftime("%Y-%m-%d", time.localtime()), self.normal))
         det = 'Viser fakturaer '
         if self.info['visubetalte']: det += '(også ubetalte) '
         else: det += '(ikke ubetalte) '
@@ -58,12 +60,12 @@ class rapport:
         if self.info['kunde'] is not None:
             det += 'sendt til %s' % self.info['kunde'].navn
         self.flow.append(Paragraph(det, self.normal))
-        self.okonomi = {'inn':0.0, 'mva':0.0, 'b':0, 'u':0}
+        self.okonomi = {'inn': 0.0, 'mva': 0.0, 'b': 0, 'u': 0}
         self.seksjon = ''
         logging.debug(self.info)
 
     def lag(self):
-        dok = SimpleDocTemplate(self.filnavn,pagesize = A4)
+        dok = SimpleDocTemplate(self.filnavn, pagesize=A4)
         #dok.setAuthor("%s (Fryktelig Fin Faktura)" % self.info.firma.kontaktperson)
         #dok.setTitle("Fakturaer hos %s" % self.info.firma.firmanavn)
         #canvas.setSubject("How to Generate PDF files using the ReportLab modules")
@@ -77,7 +79,8 @@ class rapport:
         return fil.vis(self.filnavn)
 
     def lastOrdreliste(self, ordreliste):
-        for o in ordreliste: self.leggTilOrdre(o)
+        for o in ordreliste:
+            self.leggTilOrdre(o)
 
     def leggTilOrdre(self, ordre):
         self.oppdatert = False
@@ -100,10 +103,13 @@ class rapport:
         else:
             status = "<font color=red>ubetalt</font>"
             self.okonomi['u'] += 1
-        self.flow.append(Paragraph("ordre <i># %04i</i> (%s), utformet til %s den %s\n" % (ordre._id, status, ordre.kunde.navn, time.strftime("%Y-%m-%d", time.localtime(ordre.ordredato))), self.overskrift))
+        self.flow.append(
+            Paragraph(
+                "ordre <i># %04i</i> (%s), utformet til %s den %s\n" %
+                (ordre._id, status, ordre.kunde.navn, time.strftime("%Y-%m-%d", time.localtime(ordre.ordredato))), self.overskrift))
         if ordre.linje:
             for vare in ordre.linje:
                 self.flow.append(Paragraph("<li> #%i: %s </li>" % (vare._id, str(vare)), self.liste))
 
     def tryggXml(self, s):
-      return s.replace('&', '&amp;').replace('<', '&lt;')
+        return s.replace('&', '&amp;').replace('<', '&lt;')

@@ -19,17 +19,25 @@ from email.header import Header, decode_header
 from email.utils import parseaddr
 import email.iterators
 import socket
-from string import join
 
 TRANSPORTMETODER = ['auto', 'smtp', 'sendmail']
 
-class SendeFeil(Exception): pass
-class UgyldigVerdi(Exception): pass
-class IkkeImplementert(Exception): pass
+
+class SendeFeil(Exception):
+    pass
+
+
+class UgyldigVerdi(Exception):
+    pass
+
+
+class IkkeImplementert(Exception):
+    pass
+
 
 class epost:
 
-    charset='iso-8859-15' # epostens tegnsett
+    charset = 'iso-8859-15'  # epostens tegnsett
     kopi = None
     brukernavn = None
     passord = None
@@ -37,7 +45,7 @@ class epost:
     vedlegg = []
 
     def faktura(self, ordre, pdfFilnavn, tekst=None, fra=None, testmelding=False):
-        if not type(pdfFilnavn) in (str,):
+        if not type(pdfFilnavn) in (str, ):
             raise UgyldigVerdi('pdfFilnavn skal være tekst (ikke "%s")' % type(pdfFilnavn))
         self.ordre = ordre
         self.pdfFilnavn = pdfFilnavn
@@ -45,19 +53,20 @@ class epost:
         self.fra = fra
         self.til = ordre.kunde.epost
         self.tittel = "Epostfaktura fra %s: '%s' (#%i)" % (ordre.firma.firmanavn, self.kutt(ordre.tekst), ordre.ID)
-        if tekst is None: tekst = 'Vedlagt følger epostfaktura #%i:\n\n%s\n\n-- \n%s\n%s' % (ordre.ID, ordre.tekst,  ordre.firma, ordre.firma.vilkar)
+        if tekst is None:
+            tekst = 'Vedlagt følger epostfaktura #%i:\n\n%s\n\n-- \n%s\n%s' % (ordre.ID, ordre.tekst, ordre.firma, ordre.firma.vilkar)
         self.tekst = tekst
         self.testmelding = testmelding
-        if self.testmelding: # vi er i utviklingsmodus, skift tittel
-            self.tittel = "TESTFAKTURA "+self.tittel
+        if self.testmelding:  # vi er i utviklingsmodus, skift tittel
+            self.tittel = "TESTFAKTURA " + self.tittel
 
     def mimemelding(self):
         m = MIMEMultipart()
         m['Subject'] = Header(self.tittel, self.charset)
-        n = self.ordre.firma.firmanavn.replace(';', ' ').replace(',',' ')
+        n = self.ordre.firma.firmanavn.replace(';', ' ').replace(',', ' ')
         m['From'] = '"%s" <%s>' % (Header(n, self.charset), self.fra)
         #m['To'] = '"%s" <%s>' % (Header(self.ordre.kunde.navn, self.charset), self.til)
-        m['To'] = self.til #'"%s" <%s>' % (Header(self.ordre.kunde.navn, self.charset), self.til)
+        m['To'] = self.til  #'"%s" <%s>' % (Header(self.ordre.kunde.navn, self.charset), self.til)
         m.preamble = 'You will not see this in a MIME-aware mail reader.\n'
         # To guarantee the message ends with a newline
         m.epilogue = ''
@@ -68,46 +77,48 @@ class epost:
 
         # Legg til fakturaen
         b = MIMEBase('application', 'x-pdf')
-        _filename=Header('%s-%i.pdf' % (self.ordre.firma.firmanavn, self.ordre.ID), self.charset)
-        b.add_header('Content-Disposition', 'attachment', filename=_filename.encode()) # legg til filnavn
+        _filename = Header('%s-%i.pdf' % (self.ordre.firma.firmanavn, self.ordre.ID), self.charset)
+        b.add_header('Content-Disposition', 'attachment', filename=_filename.encode())  # legg til filnavn
         m.attach(b)
         fp = open(self.pdfFilnavn, 'rb')
-        b.set_payload(fp.read()) # les inn fakturaen
+        b.set_payload(fp.read())  # les inn fakturaen
         fp.close()
-        encoders.encode_base64(b) #base64 encode subpart
+        encoders.encode_base64(b)  #base64 encode subpart
 
         # Legg til vedlegg
         for filnavn, vedlegg in self.vedlegg:
             v = MIMEBase('application', 'octet-stream')
-            _filename=Header(filnavn, self.charset)
-            v.add_header('Content-Disposition', 'attachment', filename=_filename.encode()) # legg til filnavn
+            _filename = Header(filnavn, self.charset)
+            v.add_header('Content-Disposition', 'attachment', filename=_filename.encode())  # legg til filnavn
             m.attach(v)
-            v.set_payload(vedlegg) 
-            encoders.encode_base64(v) #base64 encode subpart
+            v.set_payload(vedlegg)
+            encoders.encode_base64(v)  #base64 encode subpart
 
         return m
 
     def auth(self, brukernavn, passord):
-        if not type(brukernavn) in (str,):
+        if not type(brukernavn) in (str, ):
             raise UgyldigVerdi('Brukernavn skal være tekst (ikke "%s")' % type(brukernavn))
-        if not type(passord) in (str,):
+        if not type(passord) in (str, ):
             raise UgyldigVerdi('Passord skal være tekst (ikke "%s")' % type(passord))
         self._auth = True
         self.brukernavn = brukernavn
         self.passord = passord
 
-    def send(self): pass
+    def send(self):
+        pass
 
-    def test(self): pass
+    def test(self):
+        pass
 
     def kutt(self, s, l=30):
-        assert(type(s) in (str,))
+        assert (type(s) in (str, ))
         if len(s) < l: return s
         return s[0:l] + "..."
 
     def settKopi(self, s):
         # setter BCC-kopi til s
-        if not type(s) in (str,):
+        if not type(s) in (str, ):
             raise UgyldigVerdi('Epostadresse skal være tekst (ikke "%s")' % type(s))
         # sjekk at s er en gyldig epostadresse
         if not '@' in s:
@@ -126,20 +137,21 @@ class epost:
             return True
         else:
             return False
-            
+
+
 class smtp(epost):
-    smtpserver='localhost'
-    smtpport=25
+    smtpserver = 'localhost'
+    smtpport = 25
     _tls = False
     _auth = False
 
     def settServer(self, smtpserver, port=25):
-        if not type(smtpserver) in (str,):
+        if not type(smtpserver) in (str, ):
             raise UgyldigVerdi('smtpserver skal være tekst (ikke "%s")' % type(smtpserver))
         if not type(port) == int:
             raise UgyldigVerdi('port skal være et heltall (ikke "%s")' % type(port))
-        self.smtpserver=str(smtpserver)
-        self.smtpport=int(port)
+        self.smtpserver = str(smtpserver)
+        self.smtpport = int(port)
 
     def tls(self, _bool):
         if not type(_bool) == bool:
@@ -148,7 +160,7 @@ class smtp(epost):
 
     def test(self):
         s = smtplib.SMTP()
-        if self.testmelding: #debug
+        if self.testmelding:  #debug
             s.set_debuglevel(1)
         s.connect(self.smtpserver, self.smtpport)
         s.ehlo()
@@ -162,7 +174,7 @@ class smtp(epost):
 
     def send(self):
         s = smtplib.SMTP()
-        if self.testmelding: #debug
+        if self.testmelding:  #debug
             s.set_debuglevel(1)
         try:
             s.connect(self.smtpserver, self.smtpport)
@@ -176,8 +188,10 @@ class smtp(epost):
             raise SendeFeil(E)
         except:
             raise
-        mottakere = [self.til,]
-        if self.kopi: mottakere.append(self.kopi) # sender kopi til oss selv (BCC)
+        mottakere = [
+            self.til,
+        ]
+        if self.kopi: mottakere.append(self.kopi)  # sender kopi til oss selv (BCC)
         logging.debug("mottaker: %s", mottakere)
         logging.debug("fra: %s (%s)", self.fra, type(self.fra))
         res = s.sendmail(self.fra, mottakere, self.mimemelding().as_string())
@@ -192,16 +206,17 @@ class smtp(epost):
             #|      550.  If all addresses are accepted, then the method will return an
             #|      empty dictionary.
 
-            feil = [ "%s: %s" % (a, res[a][1]) for a in list(res.keys()) ]
+            feil = ["%s: %s" % (a, res[a][1]) for a in list(res.keys())]
             raise SendeFeil('Sendingen feilet for disse adressene:\n%s' % join(feil, '\n'))
         return True
 
+
 class sendmail(epost):
-    bin='/usr/lib/sendmail'
-    _auth=False
+    bin = '/usr/lib/sendmail'
+    _auth = False
 
     def settSti(self, sti):
-        if not type(sti) in (str,):
+        if not type(sti) in (str, ):
             raise UgyldigVerdi('sti skal være tekst (ikke "%s")' % type(sti))
         self.bin = sti
 
@@ -209,7 +224,7 @@ class sendmail(epost):
         import os.path as p
         real = p.realpath(self.bin)
         logging.debug("fullstendig sti: %s", real)
-        if not (p.exists(real) and p.isfile(real)): # er dette tilstrekkelig?
+        if not (p.exists(real) and p.isfile(real)):  # er dette tilstrekkelig?
             raise SendeFeil('%s er ikke en gyldig sendmail-kommando' % self.bin)
         return True
 
@@ -218,14 +233,14 @@ class sendmail(epost):
         #-4     Forces ssmtp to use IPv4 addresses only.
         #-6     Forces ssmtp to use IPv6 addresses only.
         #-auusername
-                #Specifies username for SMTP authentication.
+        #Specifies username for SMTP authentication.
         #-appassword
-                #Specifies password for SMTP authentication.
+        #Specifies password for SMTP authentication.
         #-ammechanism
-                #Specifies mechanism for SMTP authentication. (Only LOGIN and CRAM-MD5)
+        #Specifies mechanism for SMTP authentication. (Only LOGIN and CRAM-MD5)
         # XXX TODO: Hvordan gjøre auth uavhengig av sendmail-implementasjon?
         kmd = "%s %s" % (self.bin, self.til)
-        if self.kopi: kmd += " %s" % self.kopi # kopi til oss selv (BCC)
+        if self.kopi: kmd += " %s" % self.kopi  # kopi til oss selv (BCC)
         logging.debug("starter prosess: %s", kmd)
         inn, ut = os.popen4(kmd)
         try:
@@ -235,12 +250,15 @@ class sendmail(epost):
             raise SendeFeil('Sendingen feilet fordi:\n' + ut.read())
         #i = inn.close()
         u = ut.close()
-        logging.info('sendmail er avsluttet; %s U %s' % (r,u))
+        logging.info('sendmail er avsluttet; %s U %s' % (r, u))
         return True
 
+
 class dump(epost):
+
     def send(self):
         print(self.mimemelding().as_string())
         return True
-    def test(self): return self.send()
 
+    def test(self):
+        return self.send()

@@ -10,8 +10,8 @@
 #
 ###########################################################################
 
-import sys, os.path, dircache, mimetypes, re
-from string import join
+import sys, os.path, mimetypes, re
+
 from time import time, strftime, localtime, mktime
 import logging
 
@@ -200,11 +200,11 @@ class FinFaktura(QtGui.QMainWindow):  #Ui_MainWindow): ## leser gui fra faktura_
 
     def skiftTab(self, w):
         i = self.gui.fakturaTab.currentIndex()
-        if i is 0: self.visFaktura()
-        elif i is 1: self.visKunder()
-        elif i is 2: self.visVarer()
-        elif i is 3: self.visOkonomi()
-        elif i is 4: self.visFirma()
+        if i == 0: self.visFaktura()
+        elif i == 1: self.visKunder()
+        elif i == 2: self.visVarer()
+        elif i == 3: self.visOkonomi()
+        elif i == 4: self.visFirma()
         self.gammelTab = i
 
 ################## FAKTURA ########################

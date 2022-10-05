@@ -11,24 +11,23 @@
 
 import logging
 from .fakturakomponenter import fakturaOrdre
-from string import join
+
 
 class ordreHenter:
     begrens = []
-    varer   = []
-    vare    = False
-    sorter  = None
-    antall  = None
-
+    varer = []
+    vare = False
+    sorter = None
+    antall = None
 
     def __init__(self, db):
         self.db = db
         self.c = db.cursor()
         self.begrens = []
-        self.varer   = []
-        self.vare    = False
-        self.sorter  = None
-        self.antall  = None
+        self.varer = []
+        self.vare = False
+        self.sorter = None
+        self.antall = None
 
     def begrensDato(self, fraEpoch=None, tilEpoch=None):
         if fraEpoch is not None:
@@ -53,13 +52,13 @@ class ordreHenter:
         if not vis: self.begrens.append(" betalt != 0 ")
 
     def sorterEtter(self, kolonne):
-        s = { 'dato':'ordredato', 'kunde':'kundeID', 'vare':'vareID' }
+        s = {'dato': 'ordredato', 'kunde': 'kundeID', 'vare': 'vareID'}
         self.sorter = " ORDER BY %s " % s[kolonne]
         if kolonne == 'vare': self.vare = True
 
     def hentOrdrer(self):
         self.c.execute(self._sql())
-        return [ fakturaOrdre(self.db, Id=z[0]) for z in self.c.fetchall() ]
+        return [fakturaOrdre(self.db, Id=z[0]) for z in self.c.fetchall()]
 
     def _sql(self):
         s = "SELECT Ordrehode.ID FROM %s" % fakturaOrdre._tabellnavn
@@ -67,7 +66,8 @@ class ordreHenter:
             # SELECT Ordrehode.ID FROM Ordrehode LEFT OUTER JOIN Ordrelinje ON Ordrehode.ID=Ordrelinje.ordrehodeID WHERE vareID=3;
             s += " LEFT OUTER JOIN Ordrelinje ON Ordrehode.ID=Ordrelinje.ordrehodeID "
             #s += join(vareID=%i " % self.
-            for v in self.varer: self.begrens.append(" vareID=%i " % v)
+            for v in self.varer:
+                self.begrens.append(" vareID=%i " % v)
         if self.begrens:
             s += " WHERE " + join(self.begrens, " AND ")
         if self.sorter:

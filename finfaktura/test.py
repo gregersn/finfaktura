@@ -10,7 +10,7 @@
 ###########################################################################
 
 import types, os, sys, os.path
-from string import join
+
 from time import time, strftime, localtime
 try:
     import sqlite3 as sqlite
@@ -55,14 +55,14 @@ if __name__ == "__main__":
         #print "faktura:", f
         b = FakturaBibliotek(cx)
         pdf = b.lagPDF(f, "epost")
-        print("pdf:",pdf.filnavn)
+        print("pdf:", pdf.filnavn)
     if "pdf" in test:
         _firma = fakturaFirmainfo(cx)
         f = fakturaOrdre(cx, Id=3, firma=_firma)
         b = FakturaBibliotek(cx)
         pdf = b.lagPDF(f, "epost")
-        print("pdf:",pdf.filnavn)
-        
+        print("pdf:", pdf.filnavn)
+
     if "hentordrer" in test:
         b = FakturaBibliotek(cx)
         for z in b.hentOrdrer():
@@ -71,15 +71,15 @@ if __name__ == "__main__":
         f = fakturaFirmainfo(cx)
         print(f.__str__())
         print(f.firmanavn)
-    
+
     if "oppdater" in test:
         f = fakturaFirmainfo(cx)
-        f.firmanavn='Hålåxx'
+        f.firmanavn = 'Hålåxx'
         print(f.firmanavn)
-    
+
     if "firmalogo" in test:
         f = fakturaFirmainfo(cx)
-        print("firmalogo:",type(f.logo))
+        print("firmalogo:", type(f.logo))
         #out = file("/tmp/firmalogo.gif", "w")
         #out.write(f.logo)
         #out.close()
@@ -108,7 +108,7 @@ if __name__ == "__main__":
         f = fakturaOrdre(cx, Id=1, firma=_firma)
         b = FakturaBibliotek(cx)
         pdf = b.lagPDF(f, "epost")
-        print("pdf:",pdf.filnavn)
+        print("pdf:", pdf.filnavn)
         from . import epost
         for metode in ('dump', 'sendmail', 'smtp', 'gmail'):
             m = getattr(epost, metode)()
@@ -117,8 +117,7 @@ if __name__ == "__main__":
             print(m.test())
             print('sender %s' % metode)
             #print m.send()
-        
-        
+
     if "dbtest" in test:
         print("tester om %s er en sqlite-database" % sys.argv[2])
         print(sjekkDatabaseVersjon(sys.argv[2]))
@@ -129,7 +128,7 @@ if __name__ == "__main__":
         f = f60.f60(filnavn=None)
         kid = "001234000123"
         sjekksum = f.lagSjekksum(kid)
-        fullKid = kid+str(sjekksum)
+        fullKid = kid + str(sjekksum)
         print("sjekksum: %s, fullKid: %s" % (sjekksum, fullKid))
         print("full KID (%s) stemmer: %s" % (fullKid, f.sjekkKid(fullKid)))
 
