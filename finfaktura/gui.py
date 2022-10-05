@@ -680,7 +680,7 @@ class FinFaktura(QtWidgets.QMainWindow):  #Ui_MainWindow): ## leser gui fra fakt
     def visEpostfaktura(self, ordre, pdfFilnavn):
         epostboks = gui_sendepost.sendEpost(self, ordre)
         res, tekst = epostboks.exec_()
-        if res == QtGui.QDialog.Accepted:
+        if res == QtWidgets.QDialog.Accepted:
             return self.sendEpostfaktura(ordre, tekst, pdfFilnavn)
 
     def sendEpostfaktura(self, ordre, tekst, filnavn):
@@ -1263,26 +1263,26 @@ class FinFaktura(QtWidgets.QMainWindow):  #Ui_MainWindow): ## leser gui fra fakt
 class tekstVindu(object):
 
     def __init__(self, tittel, tekst):
-        self.gui = QtGui.QDialog()
+        self.gui = QtWidgets.QDialog()
         self.gui.setObjectName('tekstvindu')
         self.gui.resize(600, 600)
         self.gui.setModal(True)
 
-        self.vbox = QtGui.QVBoxLayout(self.gui)
-        self.tittel = QtGui.QLabel(self.gui)
+        self.vbox = QtWidgets.QVBoxLayout(self.gui)
+        self.tittel = QtWidgets.QLabel(self.gui)
         self.tittel.setText('<b>%s</b>' % tittel)
-        self.tekst = QtGui.QPlainTextEdit(self.gui)
+        self.tekst = QtWidgets.QPlainTextEdit(self.gui)
         self.tekst.setTabChangesFocus(True)
         self.tekst.setObjectName("tekst")
         self.tekst.setPlainText(tekst)
         self.tekst.setReadOnly(True)
-        self.knapper = QtGui.QDialogButtonBox(self.gui)
-        self.knapper.setStandardButtons(QtGui.QDialogButtonBox.Ok)
+        self.knapper = QtWidgets.QDialogButtonBox(self.gui)
+        self.knapper.setStandardButtons(QtWidgets.QDialogButtonBox.Ok)
         self.vbox.addWidget(self.tittel)
         self.vbox.addWidget(self.tekst)
         self.vbox.addWidget(self.knapper)
 
-        self.knapper.triggered.connect(self.gui.accept)
+        self.knapper.clicked.connect(self.gui.accept)
 
         self.gui.show()
 

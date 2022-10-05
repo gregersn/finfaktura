@@ -376,12 +376,12 @@ def lesRessurs(ressurs):
 
 
 def typeofqt(obj):
-    from PyQt5 import QtGui
-    if isinstance(obj, QtGui.QSpinBox): return 'QSpinBox'
-    elif isinstance(obj, QtGui.QDoubleSpinBox): return 'QDoubleSpinBox'
-    elif isinstance(obj, QtGui.QLineEdit): return 'QLineEdit'
-    elif isinstance(obj, QtGui.QTextEdit): return 'QTextEdit'
-    elif isinstance(obj, QtGui.QPlainTextEdit): return 'QPlainTextEdit'
-    elif isinstance(obj, QtGui.QHtmlTextEdit): return 'QHtmlTextEdit'
-    elif isinstance(obj, QtGui.QComboBox): return 'QComboBox'
+    from PyQt5 import QtGui, QtWidgets
+    if isinstance(obj, QtWidgets.QSpinBox): return 'QSpinBox'
+    elif isinstance(obj, QtWidgets.QDoubleSpinBox): return 'QDoubleSpinBox'
+    elif isinstance(obj, QtWidgets.QLineEdit): return 'QLineEdit'
+    elif isinstance(obj, QtWidgets.QTextEdit): return 'QTextEdit'
+    elif isinstance(obj, QtWidgets.QPlainTextEdit): return 'QPlainTextEdit'
+    elif isinstance(obj, QtWidgets.QHtmlTextEdit): return 'QHtmlTextEdit'
+    elif isinstance(obj, QtWidgets.QComboBox): return 'QComboBox'
     return "QWidget"

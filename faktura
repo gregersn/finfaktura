@@ -43,8 +43,8 @@ if __name__ == "__main__":
             print(e)
             print("Feil! Ressursene er ikke generert (det må \ndu gjøre dersom du sjekker ut fra Git selv)")
             print("Lager ressursene. Ta en titt på \nscripts/forbered_ressurser.sh eller \nfinfaktura/ekstra.py for detaljer")
-            # from finfaktura.ekstra import forbered_ressurser
-            # forbered_ressurser()
+            from finfaktura.ekstra import forbered_ressurser
+            forbered_ressurser()
         except ImportError as e:
             print("OOPS! Problemer med å laste moduler (bruk -d for å vise feilmelding)")
             if DEBUG:

@@ -11,7 +11,7 @@
 ###########################################################################
 
 import sys, logging, os.path, glob
-from PyQt5 import QtCore, QtGui
+from PyQt5 import QtCore, QtGui, QtWidgets
 from .ui import finfaktura_oppsett_ui
 
 
@@ -19,17 +19,17 @@ class finfakturaOppsett(finfaktura_oppsett_ui.Ui_FinFakturaOppsett):
 
     def __init__(self, faktura):
         self.faktura = faktura
-        self.gui = QtGui.QDialog()
+        self.gui = QtWidgets.QDialog()
         self.setupUi(self.gui)
-        self.gui.connect(self.oppsettFakturakatalogSok, QtCore.SIGNAL("clicked()"), self.endreFakturakatalog)
-        self.gui.connect(self.oppsettProgrammerVisSok, QtCore.SIGNAL("clicked()"), self.endreProgramVis)
+        self.oppsettFakturakatalogSok.clicked.connect(self.endreFakturakatalog)
+        self.oppsettProgrammerVisSok.clicked.connect(self.endreProgramVis)
 
         self.vis()
         self.gui.show()
 
     def exec_(self):
         res = self.gui.exec_()
-        if res == QtGui.QDialog.Accepted:
+        if res == QtWidgets.QDialog.Accepted:
             logging.debug('oppdaterer')
             self.oppdater()
         return res
@@ -65,8 +65,8 @@ class finfakturaOppsett(finfaktura_oppsett_ui.Ui_FinFakturaOppsett):
     def endreFakturakatalog(self):
         nu = self.oppsettFakturakatalog.text()
         startdir = nu
-        ny = QtGui.QFileDialog.getExistingDirectory(self.gui, "Velg katalog fakturaene skal lagres i", startdir,
-                                                    QtGui.QFileDialog.ShowDirsOnly)
+        ny = QtWidgets.QFileDialog.getExistingDirectory(self.gui, "Velg katalog fakturaene skal lagres i", startdir,
+                                                        QtWidgets.QFileDialog.ShowDirsOnly)
         if len(str(ny)) > 0:
             logging.debug("Setter ny fakturakataolg: %s" % ny)
             self.faktura.oppsett.fakturakatalog = str(ny)
@@ -74,8 +74,9 @@ class finfakturaOppsett(finfaktura_oppsett_ui.Ui_FinFakturaOppsett):
 
     def endreProgramVis(self):
         ny = str(
-            QtGui.QFileDialog.getOpenFileName(self.gui, "Velg et program å åpne PDF i",
-                                              self.oppsettProgramVisPDF.itemData(self.oppsettProgramVisPDF.currentIndex()).toPyObject()))
+            QtWidgets.QFileDialog.getOpenFileName(
+                self.gui, "Velg et program å åpne PDF i",
+                self.oppsettProgramVisPDF.itemData(self.oppsettProgramVisPDF.currentIndex()).toPyObject()))
         if len(ny) > 0:
             logging.debug("Setter nytt visningsprogram: %s" % ny)
             self.faktura.oppsett.vispdf = ny
@@ -84,4 +85,4 @@ class finfakturaOppsett(finfaktura_oppsett_ui.Ui_FinFakturaOppsett):
     def oppdater(self):
         logging.debug("Lager oppsett")
         self.faktura.oppsett.fakturakatalog = str(self.oppsettFakturakatalog.text())
-        self.faktura.oppsett.vispdf = str(self.oppsettProgramVisPDF.itemData(self.oppsettProgramVisPDF.currentIndex()).toPyObject())
+        self.faktura.oppsett.vispdf = self.oppsettProgramVisPDF.itemData(self.oppsettProgramVisPDF.currentIndex())

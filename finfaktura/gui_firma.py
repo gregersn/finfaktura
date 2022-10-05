@@ -11,7 +11,7 @@
 ###########################################################################
 
 import logging
-from PyQt5 import QtCore, QtGui
+from PyQt5 import QtCore, QtGui, QtWidgets
 from .ui import firmainfo_ui
 from .fakturabibliotek import typeofqt
 
@@ -20,9 +20,9 @@ class firmaOppsett(firmainfo_ui.Ui_firmaOppsett):
 
     def __init__(self, firma):
         self.firma = firma
-        self.gui = QtGui.QDialog()
+        self.gui = QtWidgets.QDialog()
         self.setupUi(self.gui)
-        self.gui.connect(self.lagreLogo, QtCore.SIGNAL("clicked()"), self.finnFjernLogo)
+        self.lagreLogo.clicked.connect(self.finnFjernLogo)
 
         self._kontrollkart = {
             self.Firmanavn: 'Firmanavn',
@@ -44,7 +44,7 @@ class firmaOppsett(firmainfo_ui.Ui_firmaOppsett):
 
     def exec_(self):
         res = self.gui.exec_()
-        if res == QtGui.QDialog.Accepted:
+        if res == QtWidgets.QDialog.Accepted:
             return self.samleInfo()
         return {}
 
@@ -170,10 +170,10 @@ class firmaOppsett(firmainfo_ui.Ui_firmaOppsett):
         tom = QtGui.QColor('red')
         widget = 'QWidget'
         for obj in list(self._kontrollkart.keys()):
-            if isinstance(obj, (QtGui.QSpinBox, QtGui.QDoubleSpinBox)): test = obj.value() > 0
-            elif isinstance(obj, QtGui.QComboBox): test = obj.currentText()
-            elif isinstance(obj, (QtGui.QLineEdit, QtGui.QTextEdit)): test = obj.text()
-            elif isinstance(obj, QtGui.QPlainTextEdit): test = obj.toPlainText()
+            if isinstance(obj, (QtWidgets.QSpinBox, QtWidgets.QDoubleSpinBox)): test = obj.value() > 0
+            elif isinstance(obj, QtWidgets.QComboBox): test = obj.currentText()
+            elif isinstance(obj, (QtWidgets.QLineEdit, QtWidgets.QTextEdit)): test = obj.text()
+            elif isinstance(obj, QtWidgets.QPlainTextEdit): test = obj.toPlainText()
             else:
                 logging.error('mangler test for %s (%s)' % (obj, type(obj)))
             if test:
