@@ -8,6 +8,7 @@
 # $Id: fakturakomponenter.py 545 2009-04-13 19:45:25Z havard.gulldahl $
 ###########################################################################
 
+from pathlib import Path
 import sys, re, types, time, os.path
 import sqlite3
 
@@ -19,7 +20,7 @@ from .fakturafeil import *
 PDFVIS = "/usr/bin/xdg-open"
 
 
-class fakturaKomponent:
+class FakturaKomponent:
     _egenskaper = {}
     _tabellnavn = ""
     _sqlExists = True
@@ -108,11 +109,11 @@ class fakturaKomponent:
             return 0.0
 
 
-class fakturaKunde(fakturaKomponent):
+class fakturaKunde(FakturaKomponent):
     _tabellnavn = "Kunde"
 
     def __init__(self, db: sqlite3.Connection, Id: Optional[int] = None):
-        fakturaKomponent.__init__(self, db, Id)
+        FakturaKomponent.__init__(self, db, Id)
 
     def __str__(self):
         return "%s, %s, kunde # %03i" % (self.navn, self.epost, self._id)
@@ -157,7 +158,7 @@ class fakturaKunde(fakturaKomponent):
         return [fakturaOrdre(self.db, kunde=self, Id=i[0]) for i in self.c.fetchall()]
 
 
-class fakturaVare(fakturaKomponent):
+class fakturaVare(FakturaKomponent):
     _tabellnavn = "Vare"
 
     def __str__(self):
@@ -208,7 +209,7 @@ class fakturaVare(fakturaKomponent):
             return None
 
 
-class fakturaOrdre(fakturaKomponent):
+class fakturaOrdre(FakturaKomponent):
     _tabellnavn = "Ordrehode"
     linje = []
 
@@ -219,7 +220,7 @@ class fakturaOrdre(fakturaKomponent):
         self.kunde = kunde
         self.firma = firma
         self.ordreforfall = forfall
-        fakturaKomponent.__init__(self, db, Id)
+        FakturaKomponent.__init__(self, db, Id)
         self._egenskaperAldriCache = ['kansellert', 'betalt']
         if Id is not None:
             self.finnVarer()
@@ -295,24 +296,15 @@ class fakturaOrdre(fakturaKomponent):
     def fjernBetalt(self):
         self.betalt = None
 
-    def lagFilnavn(self, katalog, fakturatype):
+    def lagFilnavn(self, katalog: Path, fakturatype: str):
         logging.debug('lagFilnavn: %s <- %s', katalog, fakturatype)
-        # o.p.expanduser tar ikke unicode-stier (bug i python)
-        # prøv å komme seg rundt det ved å dele opp stien
-        if not '~' in katalog:
-            fullkat = katalog  # trenger ikke expanduser
-        else:
-            _brukersti, sti = re.search(r'(~[^/\\ ]*)(.*)', katalog).groups()
-            brukersti = os.path.expanduser(str(_brukersti)).decode(sys.getfilesystemencoding())
-            fullkat = os.path.join(brukersti, sti)
-        if not os.path.isdir(fullkat):
-            logging.debug('lagFilnavn: %s er ikke en gyldig katalog', fullkat)
-            raise FakturaFeil('%s er ikke en gyldig katalog' % fullkat)
-        n = os.path.join(
-            fullkat, "faktura-%06d-%s-%s-%s.pdf" %
-            (self.ID, fakturatype, self.kunde.navn.replace(" ", "_").replace("/", "_"), time.strftime("%Y-%m-%d")))
+        if not katalog.expanduser().is_dir():
+            logging.debug('lagFilnavn: %s er ikke en gyldig katalog', katalog)
+            raise FakturaFeil('%s er ikke en gyldig katalog' % katalog)
+        n = katalog / ("faktura-%06d-%s-%s-%s.pdf" %
+                       (self.ID, fakturatype, self.kunde.navn.replace(" ", "_").replace("/", "_"), time.strftime("%Y-%m-%d")))
         logging.debug('lagFilnavn ble til %s', str(n))
-        return str(n)
+        return n.expanduser()
 
     def forfalt(self):
         "forfalt() -> Bool. Er fakturaen forfalt (og ikke betalt)?"
@@ -323,7 +315,7 @@ class fakturaOrdre(fakturaKomponent):
         return fakturaSikkerhetskopi(self.db, Id=self.c.fetchone()[0])
 
 
-class fakturaOrdrelinje(fakturaKomponent):
+class fakturaOrdrelinje(FakturaKomponent):
     _tabellnavn = "Ordrelinje"
 
     def __init__(self, db, ordre, vare=None, kvantum=None, enhetspris=None, mva=None, Id=None):
@@ -335,7 +327,7 @@ class fakturaOrdrelinje(fakturaKomponent):
                       (self.ordre._id, self.vare._id, kvantum, enhetspris, mva))
             db.commit()
             Id = c.lastrowid
-        fakturaKomponent.__init__(self, db, Id)
+        FakturaKomponent.__init__(self, db, Id)
         if Id is not None:
             self.vare = fakturaVare(db, self.vareID)
 
@@ -354,7 +346,7 @@ class fakturaOrdrelinje(fakturaKomponent):
                    (self.vare.ID, self.vare.navn, self.kvantum, self.vare.enhet, self.enhetspris, self.mva))
 
 
-class fakturaFirmainfo(fakturaKomponent):
+class fakturaFirmainfo(FakturaKomponent):
     _tabellnavn = "Firma"
     _id = 1
     _egenskaperAldriCache = []
@@ -422,7 +414,7 @@ class fakturaFirmainfo(fakturaKomponent):
             raise FirmainfoFeil("Følgende felt er ikke fylt ut: %s" % ", ".join(mangler))
 
 
-class fakturaOppsett(fakturaKomponent):
+class FakturaOppsett(FakturaKomponent):
     _tabellnavn = "Oppsett"
     _id = 1
 
@@ -431,7 +423,7 @@ class fakturaOppsett(fakturaKomponent):
         self.apiversjon = apiversjon
         c = db.cursor()
         datastrukturer = [
-            fakturaFirmainfo, fakturaKunde, fakturaVare, fakturaOrdre, fakturaOrdrelinje, fakturaOppsett, fakturaSikkerhetskopi,
+            fakturaFirmainfo, fakturaKunde, fakturaVare, fakturaOrdre, fakturaOrdrelinje, FakturaOppsett, fakturaSikkerhetskopi,
             fakturaEpost
         ]
         mangler = []
@@ -453,7 +445,7 @@ class fakturaOppsett(fakturaKomponent):
                                    ",".join([o._tabellnavn for o in mangler]))
 
         try:
-            fakturaKomponent.__init__(self, db, Id=self._id)
+            FakturaKomponent.__init__(self, db, Id=self._id)
         except DBTomFeil:
             # finner ikke oppsett. Ny, tom database
             import os
@@ -465,7 +457,7 @@ class fakturaOppsett(fakturaKomponent):
                 os.getenv('HOME'),
             ))
             db.commit()
-            fakturaKomponent.__init__(self, db, Id=self._id)
+            FakturaKomponent.__init__(self, db, Id=self._id)
         except sqlite3.DatabaseError:
             # tabellen finnes ikke
             self._sqlExists = False
@@ -496,7 +488,7 @@ class fakturaOppsett(fakturaKomponent):
             return None  #gammel databaselayout
 
 
-class fakturaSikkerhetskopi(fakturaKomponent):
+class fakturaSikkerhetskopi(FakturaKomponent):
     _tabellnavn = "Sikkerhetskopi"
 
     def __init__(self, db, ordre=None, Id=None):
@@ -507,7 +499,7 @@ class fakturaSikkerhetskopi(fakturaKomponent):
             c.execute("INSERT INTO %s (ID, ordreID, dato) VALUES (NULL, ?, ?)" % self._tabellnavn, (self.ordre._id, self.dato))
             db.commit()
             Id = c.lastrowid
-            fakturaKomponent.__init__(self, db, Id)
+            FakturaKomponent.__init__(self, db, Id)
             from .f60 import f60
             spdf = f60(filnavn=None)
             spdf.settFakturainfo(ordre._id, ordre.ordredato, ordre.forfall, ordre.tekst)
@@ -525,7 +517,7 @@ class fakturaSikkerhetskopi(fakturaKomponent):
             self.data = pdfType(spdf.data())
 
         elif Id is not None:
-            fakturaKomponent.__init__(self, db, Id)
+            FakturaKomponent.__init__(self, db, Id)
 
     def ordre(self):
         return fakturaOrdre(self.db, Id=self.ordreID)
@@ -563,19 +555,19 @@ class fakturaSikkerhetskopi(fakturaKomponent):
         subprocess.call(command)
 
 
-class fakturaEpost(fakturaKomponent):
+class fakturaEpost(FakturaKomponent):
     _tabellnavn = "Epost"
     _id = 1
 
     def __init__(self, db):
         self.db = db
         try:
-            fakturaKomponent.__init__(self, db, Id=self._id)
+            FakturaKomponent.__init__(self, db, Id=self._id)
         except DBTomFeil:
             #ikke brukt før
             self.c.execute("INSERT INTO Epost (ID) VALUES (1)")
             self.db.commit()
-            fakturaKomponent.__init__(self, db, Id=self._id)
+            FakturaKomponent.__init__(self, db, Id=self._id)
 
     def nyId(self):
         pass
@@ -597,5 +589,5 @@ class pdfType:
         return str(self.data)
 
     def __conform__(self, protocol):
-        if protocol is sqlite.PrepareProtocol:
-            return sqlite.Binary(self.data)
+        if protocol is sqlite3.PrepareProtocol:
+            return sqlite3.Binary(self.data)

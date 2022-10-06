@@ -10,10 +10,12 @@
 #
 ###########################################################################
 
+from optparse import Option
 import sys, os.path, mimetypes, re
 
 from time import time, strftime, localtime, mktime
 import logging
+from typing import Optional
 
 import finfaktura
 from finfaktura.fakturabibliotek import PRODUKSJONSVERSJON, \
@@ -286,7 +288,7 @@ class FinFaktura(QtWidgets.QMainWindow):  #Ui_MainWindow): ## leser gui fra fakt
 #     kunde = self.faktura.hentKunde(kundeID)
 #     self.nyFaktura(kunde)
 
-    def nyFaktura(self, kunde=None, ordrelinje=None):
+    def nyFaktura(self, kunde: Optional[int]=None, ordrelinje: Optional[int]=None):
         # sjekk at firmainfo er fullstendig utfylt (så feiler vi ikke senere)
         try:
             self.firma.sjekkData()
@@ -339,7 +341,7 @@ class FinFaktura(QtWidgets.QMainWindow):  #Ui_MainWindow): ## leser gui fra fakt
             self.gui.fakturaFaktaForfall.setFocus()
             self.alert("Forfallsdato kan ikke være tidligere enn fakturadato")
             return False
-        kunde = self.gui.fakturaFaktaMottaker.itemData(self.gui.fakturaFaktaMottaker.currentIndex()).toPyObject()
+        kunde = self.gui.fakturaFaktaMottaker.itemData(self.gui.fakturaFaktaMottaker.currentIndex()).value()
         d = self.gui.fakturaFaktaDato.date()
         dato = mktime((d.year(), d.month(), d.day(), 11, 59, 0, 0, 0,
                        0))  # på midten av dagen (11:59) for å kunne betale fakturaen senere laget samme dag
@@ -402,42 +404,42 @@ class FinFaktura(QtWidgets.QMainWindow):  #Ui_MainWindow): ## leser gui fra fakt
 # #     self.nyFaktura(kunde = rad.ordre.kunde, ordrelinje = linje)
 #     self.nyFaktura(ordre = rad.ordre, ordrelinje = linje)
 
-    def leggVareTilOrdre(self, rad=None):
+    def leggVareTilOrdre(self, rad: Optional[int]=None):
         if rad is None:
             rad = self.gui.fakturaVareliste.rowCount()
-        Antall = QtGui.QDoubleSpinBox(self.gui.fakturaVareliste)
+        Antall = QtWidgets.QDoubleSpinBox(self.gui.fakturaVareliste)
         Antall.setMaximum(100000.0)
         Antall.setValue(0.0)
         Antall.setDecimals(1)
         Antall.show()
         Antall.setToolTip('Antall varer levert')
-        Antall.triggered.connect(lambda x: self.fakturaVarelisteSynk(rad, 1))
+        # Antall.triggered.connect(lambda x: self.fakturaVarelisteSynk(rad, 1))
 
-        Pris = QtGui.QDoubleSpinBox(self.gui.fakturaVareliste)
-        Pris.setButtonSymbols(QtGui.QDoubleSpinBox.UpDownArrows)
+        Pris = QtWidgets.QDoubleSpinBox(self.gui.fakturaVareliste)
+        Pris.setButtonSymbols(QtWidgets.QDoubleSpinBox.UpDownArrows)
         Pris.setMaximum(999999999.0)
         Pris.setDecimals(2)
         Pris.setSuffix(' kr')
         Pris.show()
         Pris.setToolTip('Varens pris (uten MVA)')
-        Pris.triggered.connect(lambda x: self.fakturaVarelisteSynk(rad, 2))
+        # Pris.triggered.connect(lambda x: self.fakturaVarelisteSynk(rad, 2))
 
-        Mva = QtGui.QDoubleSpinBox(self.gui.fakturaVareliste)
-        Mva.setButtonSymbols(QtGui.QDoubleSpinBox.UpDownArrows)
+        Mva = QtWidgets.QDoubleSpinBox(self.gui.fakturaVareliste)
+        Mva.setButtonSymbols(QtWidgets.QDoubleSpinBox.UpDownArrows)
         Mva.setValue(25)
         Mva.setSuffix(' %')
         Mva.show()
         Mva.setToolTip('MVA-sats som skal beregnes på varen')
-        Mva.triggered.connect(lambda x: self.fakturaVarelisteSynk(rad, 3))
+        # Mva.triggered.connect(lambda x: self.fakturaVarelisteSynk(rad, 3))
 
-        Vare = QtGui.QComboBox(self.gui.fakturaVareliste)
+        Vare = QtWidgets.QComboBox(self.gui.fakturaVareliste)
         for v in self.faktura.hentVarer():
             Vare.addItem(str(v.navn), QtCore.QVariant(v))
         Vare.setEditable(True)
-        Vare.setAutoCompletion(True)
+        # Vare.setAutoCompletion(True)
         Vare.show()
         Vare.setToolTip('Velg vare; eller skriv inn nytt varenavn og trykk <em>enter</em> for å legge til en ny vare')
-        Vare.triggered.connect(lambda x: self.fakturaVarelisteSynk(rad, 0))
+        # Vare.triggered.connect(lambda x: self.fakturaVarelisteSynk(rad, 0))
 
         self.gui.fakturaVareliste.setRowCount(rad + 1)
         self.gui.fakturaVareliste.setCellWidget(rad, 0, Vare)
@@ -446,13 +448,15 @@ class FinFaktura(QtWidgets.QMainWindow):  #Ui_MainWindow): ## leser gui fra fakt
         self.gui.fakturaVareliste.setCellWidget(rad, 3, Mva)
         return self.fakturaVarelisteSynk(rad, 0)
 
-    def fakturaVarelisteSynk(self, rad, kol):
+    def fakturaVarelisteSynk(self, rad: int, kol: int):
         logging.debug("synk: %s, %s", rad, kol)
         sender = self.gui.fakturaVareliste.cellWidget(rad, kol)
+        logging.debug("Sender is: %s", sender)
         if kol == 0:  # endret på varen -> oppdater metadata
             _vare = sender.itemData(sender.currentIndex())
-            if _vare.isValid():
-                vare = _vare.toPyObject()
+            logging.debug("Vare is: %s", _vare)
+            if _vare:
+                vare = _vare.value()
             else:
                 # ny vare, tøm andre felt
                 logging.debug("ny vare opprettet: %s", str(sender.currentText()))
@@ -1092,7 +1096,7 @@ class FinFaktura(QtWidgets.QMainWindow):  #Ui_MainWindow): ## leser gui fra fakt
         if self.gui.okonomiAvgrensningerKunde.isChecked():
             kliste = self.gui.okonomiAvgrensningerKundeliste
             try:
-                kunde = kliste.itemData(kliste.currentIndex()).toPyObject()
+                kunde = kliste.itemData(kliste.currentIndex()).value()
                 ordrehenter.begrensKunde(kunde)
                 begrensninger['kunde'] = kunde
             except IndexError:
@@ -1100,7 +1104,7 @@ class FinFaktura(QtWidgets.QMainWindow):  #Ui_MainWindow): ## leser gui fra fakt
         if self.gui.okonomiAvgrensningerVare.isChecked():
             vliste = self.gui.okonomiAvgrensningerVareliste
             try:
-                vare = vliste.itemData(vliste.currentIndex()).toPyObject()
+                vare = vliste.itemData(vliste.currentIndex()).value()
                 ordrehenter.begrensVare(vare)
                 begrensninger['vare'] = vare
             except IndexError:

@@ -20,7 +20,7 @@ except ImportError:
     from pysqlite2 import dbapi2 as sqlite  # prøv bruker/system-installert modul
 
 from . import historikk, fil
-from .fakturakomponenter import fakturaOppsett, fakturaEpost, fakturaFirmainfo, \
+from .fakturakomponenter import FakturaOppsett, fakturaEpost, fakturaFirmainfo, \
         fakturaOrdre, fakturaVare, fakturaKunde, fakturaSikkerhetskopi
 from .fakturafeil import *
 
@@ -38,7 +38,7 @@ class FakturaBibliotek:
         self.db = db
         self.c = db.cursor()
         self.__firmainfo = None
-        self.oppsett = fakturaOppsett(db, versjonsjekk=sjekkVersjon, apiversjon=DATABASEVERSJON)
+        self.oppsett = FakturaOppsett(db, versjonsjekk=sjekkVersjon, apiversjon=DATABASEVERSJON)
         try:
             self.epostoppsett = fakturaEpost(db)
         except sqlite.DatabaseError as e:

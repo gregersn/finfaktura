@@ -10,6 +10,7 @@
 # $Id$
 ###########################################################################
 
+from pathlib import Path
 import sys
 from .fakturabibliotek import FakturaBibliotek, kobleTilDatabase
 
@@ -45,7 +46,7 @@ def cli_faktura():
     ordre.leggTilVare(vare, antall, vare.pris, vare.mva)
     bib.lagSikkerhetskopi(ordre)
 
-    fakturanavn = ordre.lagFilnavn(bib.oppsett.fakturakatalog, fakturatype="epost")
+    fakturanavn = ordre.lagFilnavn(Path(bib.oppsett.fakturakatalog), fakturatype="epost")
 
     try:
         pdf = bib.lagPDF(ordre, "epost", fakturanavn)
@@ -105,4 +106,4 @@ def CLIInput(tekst):
         print()
         sys.exit(1)
     else:
-        return str(ret, CLIenkoding())
+        return ret

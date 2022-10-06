@@ -74,9 +74,8 @@ class finfakturaOppsett(finfaktura_oppsett_ui.Ui_FinFakturaOppsett):
 
     def endreProgramVis(self):
         ny = str(
-            QtWidgets.QFileDialog.getOpenFileName(
-                self.gui, "Velg et program å åpne PDF i",
-                self.oppsettProgramVisPDF.itemData(self.oppsettProgramVisPDF.currentIndex()).toPyObject()))
+            QtWidgets.QFileDialog.getOpenFileName(self.gui, "Velg et program å åpne PDF i",
+                                                  self.oppsettProgramVisPDF.itemData(self.oppsettProgramVisPDF.currentIndex()).value()))
         if len(ny) > 0:
             logging.debug("Setter nytt visningsprogram: %s" % ny)
             self.faktura.oppsett.vispdf = ny
