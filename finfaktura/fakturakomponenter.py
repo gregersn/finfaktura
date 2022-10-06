@@ -63,7 +63,7 @@ class FakturaKomponent:
     def hentEgenskaperListe(self):
         try:
             self.c.execute("SELECT * FROM %s LIMIT 1" % self._tabellnavn)
-        except sqlite.OperationalError:
+        except sqlite3.OperationalError:
             raise
         self._egenskaperListe = [z[0] for z in self.c.description]
         r = {}
@@ -213,7 +213,7 @@ class fakturaOrdre(FakturaKomponent):
     _tabellnavn = "Ordrehode"
     linje = []
 
-    def __init__(self, db, kunde=None, Id=None, firma=None, dato=None, forfall=None):
+    def __init__(self, db: sqlite3.Connection, kunde=None, Id=None, firma=None, dato=None, forfall=None):
         self.linje = []
         if dato is not None:
             self.ordredato = dato
@@ -318,7 +318,7 @@ class fakturaOrdre(FakturaKomponent):
 class fakturaOrdrelinje(FakturaKomponent):
     _tabellnavn = "Ordrelinje"
 
-    def __init__(self, db, ordre, vare=None, kvantum=None, enhetspris=None, mva=None, Id=None):
+    def __init__(self, db: sqlite3.Connection, ordre, vare=None, kvantum=None, enhetspris=None, mva=None, Id=None):
         self.ordre = ordre
         self.vare = vare
         if Id is None:
@@ -491,7 +491,7 @@ class FakturaOppsett(FakturaKomponent):
 class fakturaSikkerhetskopi(FakturaKomponent):
     _tabellnavn = "Sikkerhetskopi"
 
-    def __init__(self, db, ordre=None, Id=None):
+    def __init__(self, db: sqlite3.Connection, ordre=None, Id=None):
         self.dato = int(time.time())
         if ordre is not None:
             self.ordre = ordre
@@ -580,10 +580,10 @@ class pdfType:
         self.data = data
 
     #def _quote(self):
-    #'Returnerer streng som kan puttes rett inn i sqlite. Kalles internt av pysqlite'
+    #'Returnerer streng som kan puttes rett inn i sqlite3. Kalles internt av pysqlite'
     #if not self.data: return "''"
-    #import sqlite
-    #return str(sqlite.Binary(self.data))
+    #import sqlite3
+    #return str(sqlite3.Binary(self.data))
 
     def __str__(self):
         return str(self.data)

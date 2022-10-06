@@ -12,10 +12,7 @@
 import types, os, sys, os.path
 
 from time import time, strftime, localtime
-try:
-    import sqlite3 as sqlite
-except ImportError:
-    from pysqlite2 import dbapi2 as sqlite
+import sqlite3
 from pprint import pprint
 from .fakturabibliotek import *
 
@@ -27,7 +24,7 @@ if __name__ == "__main__":
         from os import execl
         execl("/bin/grep", "grep", "in test:", sys.argv[0])
 
-    cx = sqlite.connect(finnDatabasenavn())
+    cx = sqlite3.connect(finnDatabasenavn())
     if "kunde" in test:
         kunde = fakturaKunde(cx)
         kunde.navn = "Havard Gulldahl"

@@ -24,7 +24,7 @@ if __name__ == "__main__":
     dbnavn = sys.argv[1]
     sqlitedb = finnDatabasenavn(dbnavn)
     logging.debug('bruker sqlitedb: %s', sqlitedb.absolute())
-    import sqlite3 as sqlite
+    import sqlite3
     from pprint import pprint
     cx = kobleTilDatabase(sqlitedb)
 

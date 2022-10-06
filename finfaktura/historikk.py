@@ -8,6 +8,7 @@
 # $Id$
 ###########################################################################
 
+import sqlite3
 from . import fakturakomponenter
 import types, sys, time
 import logging
@@ -16,7 +17,7 @@ import logging
 class fakturaHandling(fakturakomponenter.FakturaKomponent):  #(fakturabibliotek.fakturaKomponent):
     _tabellnavn = "Handling"
 
-    def __init__(self, db, Id=None, navn=None):
+    def __init__(self, db: sqlite3.Connection, Id=None, navn=None):
         self.db = db
         self.navn = navn
         if Id is None:

@@ -14,10 +14,7 @@ from time import time, strftime, localtime
 import logging, subprocess
 from typing import Optional
 import xml.etree.ElementTree  # help py2exe
-try:
-    import sqlite3 as sqlite  # python2.5 har sqlite3 innebygget
-except ImportError:
-    from pysqlite2 import dbapi2 as sqlite  # prøv bruker/system-installert modul
+import sqlite3
 
 from . import historikk, fil
 from .fakturakomponenter import FakturaOppsett, fakturaEpost, fakturaFirmainfo, \
@@ -34,14 +31,14 @@ class FakturaBibliotek:
 
     produksjonsversjon = False  # dersom false er vi i utvikling, ellers produksjon
 
-    def __init__(self, db, sjekkVersjon=True):
+    def __init__(self, db: sqlite3.Connection, sjekkVersjon: bool = True):
         self.db = db
         self.c = db.cursor()
         self.__firmainfo = None
         self.oppsett = FakturaOppsett(db, versjonsjekk=sjekkVersjon, apiversjon=DATABASEVERSJON)
         try:
             self.epostoppsett = fakturaEpost(db)
-        except sqlite.DatabaseError as e:
+        except sqlite3.DatabaseError as e:
             if "no such table" in str(e).lower(): self.epostoppsett = None  ## for gammel versjon
             else: raise
 
@@ -251,25 +248,25 @@ class FakturaBibliotek:
                 return None
 
 
-def lagDatabase(database: Path, sqlfile=None):
+def lagDatabase(database: Path, sqlfile: Optional[str] = None):
     "lager databasestruktur. 'database' er filnavn (unicode)"
     try:
-        db = sqlite.connect(database, isolation_level=None)
+        db = sqlite3.connect(database, isolation_level=None)
         return byggDatabase(db, sqlfile)
-    except sqlite.DatabaseError:
+    except sqlite3.DatabaseError:
         raise
         # hmm, kanskje gammel database?
         dbver = sjekkDatabaseVersjon(database)
-        if dbver != sqlite.sqlite_version_info[0]:
-            e = "Databasen din (versjon %s) kan ikke leses av pysqlite, som leser versjon %s" % (dbver, sqlite.sqlite_version_info[0])
+        if dbver != sqlite3.sqlite_version_info[0]:
+            e = "Databasen din (versjon %s) kan ikke leses av pysqlite, som leser versjon %s" % (dbver, sqlite3.sqlite_version_info[0])
             print("FEIL!", e)
             raise DBVersjonFeil(e)
 
 
-def byggDatabase(db, sqlfile=None):
+def byggDatabase(db: sqlite3.Connection, sqlfile: Optional[str] = None):
     "lager databasestruktur. 'db' er et sqlite3.Connection-objekt"
     if sqlfile is not None:
-        sql = file(sqlfile).read()
+        sql = open(sqlfile).read()
     else:
         sql = str(lesRessurs(':/sql/faktura.sql'))
     db.executescript(sql)
@@ -315,15 +312,15 @@ def kobleTilDatabase(dbnavn: Optional[Path] = None):
     logging.debug('skal koble til %s (%s/%s)', dbnavn, repr(dbnavn), type(dbnavn))
 
     try:
-        db = sqlite.connect(database=dbnavn.absolute(), isolation_level=None)  # isolation_level = None gir autocommit-modus
+        db = sqlite3.connect(database=dbnavn.absolute(), isolation_level=None)  # isolation_level = None gir autocommit-modus
         logging.debug("Koblet til databasen %s", dbnavn.absolute())
-    except sqlite.DatabaseError as xxx_todo_changeme:
+    except sqlite3.DatabaseError as xxx_todo_changeme:
         (E) = xxx_todo_changeme
-        logging.debug("Vi bruker sqlite %s", sqlite.apilevel)
+        logging.debug("Vi bruker sqlite %s", sqlite3.apilevel)
         dbver = sjekkDatabaseVersjon(dbnavn)
         logging.debug("Databasen er sqlite %s", dbver)
-        if sqlite.apilevel != dbver:
-            raise DBVersjonFeil("Databasen er versjon %s, men biblioteket er versjon %s" % (dbver, sqlite.apilevel))
+        if sqlite3.apilevel != dbver:
+            raise DBVersjonFeil("Databasen er versjon %s, men biblioteket er versjon %s" % (dbver, sqlite3.apilevel))
     return db
 
 
@@ -357,7 +354,7 @@ def sikkerhetskopierFil(filnavn: Path):
     return shutil.copyfile(filnavn, bkpfil)
 
 
-def lesRessurs(ressurs):
+def lesRessurs(ressurs: str):
     """Leser en intern QT4-ressurs (qrc) og returnerer den som en QString.
 
     'ressurs' er på formatet ':/sti/navn', for eksempel ':/sql/faktura.sql'

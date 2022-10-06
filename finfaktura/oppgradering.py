@@ -88,10 +88,7 @@ ENDRINGER = """
 from pathlib import Path
 from . import fakturabibliotek
 
-try:
-    import sqlite3 as sqlite  # python2.5 har sqlite3 innebygget
-except ImportError:
-    from pysqlite2 import dbapi2 as sqlite  # prøv bruker/system-installert modul
+import sqlite3
 
 import os, time, types, sys, shutil
 
@@ -198,7 +195,7 @@ class oppgrader:
             rader = self.gmldbc.fetchall()
             self.nydbc.executemany("INSERT INTO %s VALUES (%s)" % (tabell, join(('?', ) * len(rader[0]), ',')), rader)
             self.nydb.commit()
-        except sqlite.DatabaseError as e:
+        except sqlite3.DatabaseError as e:
             if 'NO SUCH TABLE' in str(e).upper(): pass  #for gammel versjon
             else: raise
         except IndexError:
@@ -258,7 +255,7 @@ class oppgrader:
         try:
             for kopi in self.gmlbib.hentSikkerhetskopier():
                 self._oppgrader(kopi)
-        except sqlite.DatabaseError as e:
+        except sqlite3.DatabaseError as e:
             #if str(e).upper().startswith('NO SUCH TABLE'): pass #for gammel versjon
             if 'NO SUCH TABLE' in str(e).upper(): pass  #for gammel versjon
             else: raise
