@@ -12,7 +12,7 @@ import sys, re, types, time, os.path
 import sqlite3
 
 import logging, subprocess
-from typing import Any, Optional
+from typing import Any, Optional, Union
 
 from .fakturafeil import *
 
@@ -364,12 +364,12 @@ class fakturaFirmainfo(fakturaKomponent):
     kontaktperson: str
     epost: str
     adresse: str
-    postnummer: int | None
+    postnummer: Union[int, None]
     poststed: str
-    telefon: int | None
-    mobil: int | None
-    telefaks: int | None
-    kontonummer: int | None
+    telefon: Union[int, None]
+    mobil: Union[int, None]
+    telefaks: Union[int, None]
+    kontonummer: Union[int, None]
     vilkar: str
     mva: int
     forfall: int

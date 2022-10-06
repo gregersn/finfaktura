@@ -11,7 +11,7 @@
 ###########################################################################
 
 import logging
-from typing import Any, Dict
+from typing import Any, Dict, Union
 from PyQt5 import QtCore, QtGui, QtWidgets
 
 from finfaktura.fakturakomponenter import fakturaFirmainfo
@@ -114,7 +114,7 @@ class FirmaOppsett(firmainfo_ui.Ui_firmaOppsett):
             return None
 
     def samleInfo(self):
-        r: Dict[str, str | float | int | None] = {}
+        r: Dict[str, Union[str, float, int, None]] = {}
         r['firmanavn'] = str(self.Firmanavn.text())
         r['organisasjonsnummer'] = str(self.Organisasjonsnummer.text())
         r['kontaktperson'] = str(self.Kontaktperson.text())
