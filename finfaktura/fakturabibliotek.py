@@ -314,17 +314,16 @@ def kobleTilDatabase(dbnavn: Optional[Path] = None):
     try:
         db = sqlite3.connect(database=dbnavn.absolute(), isolation_level=None)  # isolation_level = None gir autocommit-modus
         logging.debug("Koblet til databasen %s", dbnavn.absolute())
-    except sqlite3.DatabaseError as xxx_todo_changeme:
-        (E) = xxx_todo_changeme
+        return db
+    except sqlite3.DatabaseError:
         logging.debug("Vi bruker sqlite %s", sqlite3.apilevel)
         dbver = sjekkDatabaseVersjon(dbnavn)
         logging.debug("Databasen er sqlite %s", dbver)
         if sqlite3.apilevel != dbver:
             raise DBVersjonFeil("Databasen er versjon %s, men biblioteket er versjon %s" % (dbver, sqlite3.apilevel))
-    return db
 
 
-def sjekkDatabaseVersjon(dbnavn):
+def sjekkDatabaseVersjon(dbnavn: str):
     """ skiller melllom sqlite 2 og 3. Forventer dbnavn i unicode"""
     #http://marc.10east.com/?l=sqlite-users&m=109382344409938&w=2
     #> It is safe to read the first N bytes in a db file ... ?

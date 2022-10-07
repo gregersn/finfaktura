@@ -418,7 +418,7 @@ class FakturaOppsett(FakturaKomponent):
     _tabellnavn = "Oppsett"
     _id = 1
 
-    def __init__(self, db: sqlite3.Connection, versjonsjekk: bool = True, apiversjon: Optional[str] = None):
+    def __init__(self, db: sqlite3.Connection, versjonsjekk: bool = True, apiversjon: Optional[float] = None):
 
         self.apiversjon = apiversjon
         c = db.cursor()

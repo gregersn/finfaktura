@@ -11,6 +11,8 @@
 ###########################################################################
 
 from optparse import Option
+from pathlib import Path
+import sqlite3
 import sys, os.path, mimetypes, re
 
 from time import time, strftime, localtime, mktime
@@ -44,7 +46,7 @@ PDFVIS = "/usr/bin/xdg-open"  # program for å vise PDF
 
 
 class FinFaktura(QtWidgets.QMainWindow):  #Ui_MainWindow): ## leser gui fra faktura_ui.py
-    db = None
+    db: Optional[sqlite3.Connection] = None
     denne_kunde = None
     denne_vare = None
     gammelTab = 0
@@ -142,9 +144,10 @@ class FinFaktura(QtWidgets.QMainWindow):  #Ui_MainWindow): ## leser gui fra fakt
             # lag databasen fra faktura.sql
             (E) = xxx_todo_changeme
             # lag databasen fra faktura.sql
-            self.db.close()
-            del (self.db)
-            del (self.c)
+            if self.db is not None:
+                self.db.close()
+                del (self.db)
+                del (self.c)
             self.db = lagDatabase(finnDatabasenavn())
             self.c = self.db.cursor()
             self.faktura = FakturaBibliotek(self.db)
@@ -155,14 +158,12 @@ class FinFaktura(QtWidgets.QMainWindow):  #Ui_MainWindow): ## leser gui fra fakt
             self.visFirmaOppsett()
         except DBGammelFeil as xxx_todo_changeme1:
             #oppgrader databasen
-            (E) = xxx_todo_changeme1
-            #oppgrader databasen
             if not self.JaNei("Databasen må oppgraderes.\nVil du gjøre det nå?"):
                 sys.exit(99)
-
-            self.db.close()
-            del (self.db)
-            del (self.c)
+            if self.db is not None:
+                self.db.close()
+                del (self.db)
+                del (self.c)
             from finfaktura.oppgradering import oppgrader, OppgraderingsFeil
             o = oppgrader()
             try:
@@ -539,12 +540,12 @@ class FinFaktura(QtWidgets.QMainWindow):  #Ui_MainWindow): ## leser gui fra fakt
 
     def lagFaktura(self, Type="epost"):
         try:
-            ordre = self.gui.fakturaFakturaliste.selectedItems()[0].ordre
+            ordre: finfaktura.fakturakomponenter.fakturaOrdre = self.gui.fakturaFakturaliste.selectedItems()[0].ordre
         except IndexError:
             self.alert('Ingen faktura er valgt')
             return False
         ordre.firma = self.firma
-        fakturanavn = ordre.lagFilnavn(self.faktura.oppsett.fakturakatalog, fakturatype=Type)
+        fakturanavn = ordre.lagFilnavn(Path(self.faktura.oppsett.fakturakatalog), fakturatype=Type)
         try:
             pdf = f60.f60(fakturanavn)
             pdf.settFirmainfo(self.firma._egenskaper)
@@ -752,7 +753,7 @@ class FinFaktura(QtWidgets.QMainWindow):  #Ui_MainWindow): ## leser gui fra fakt
         self.gui.kundeInfoStatus.clear()
         self.gui.kundeInfoStatus.addItems(statuser)
 
-        if kunde is not None:  #redigerer eksisterende kunde
+        if kunde:  #redigerer eksisterende kunde
             self.gui.kundeInfoNavn.setText(kunde.navn)
             self.gui.kundeInfoKontaktperson.setText(str(kunde.kontaktperson))
             self.gui.kundeInfoEpost.setText(str(kunde.epost))
@@ -968,7 +969,7 @@ class FinFaktura(QtWidgets.QMainWindow):  #Ui_MainWindow): ## leser gui fra fakt
         enheter = self.faktura.hentEgenskapVerdier("Vare", "enhet")
         self.gui.varerInfoEnhet.clear()
         self.gui.varerInfoEnhet.addItems(enheter)
-        if vare is not None:
+        if vare:
             self.gui.varerInfoNavn.setText(str(vare.navn))
             self.gui.varerInfoDetaljer.setPlainText(str(vare.detaljer))
             idx = self.gui.varerInfoEnhet.findText(str(vare.enhet))
