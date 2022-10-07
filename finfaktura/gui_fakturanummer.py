@@ -23,7 +23,7 @@ from PyQt5 import QtCore, QtGui, uic
 import sqlite3
 
 
-class nummersetter(object):
+class nummersetter:
 
     def lesDBInfo(self, databasenavn):
         if not os.path.exists(databasenavn): return False
@@ -65,7 +65,7 @@ class nummersetter(object):
             raise
 
 
-class nummersettergui(object):
+class NummersetterGUI:
 
     def __init__(self):
         self.help = nummersetter()
@@ -138,5 +138,5 @@ if __name__ == '__main__':
     if '-d' in sys.argv:
         logging.basicConfig(level=logging.DEBUG)
     a = QtGui.QApplication(sys.argv)
-    p = nummersettergui()
+    p = NummersetterGUI()
     a.exec_()

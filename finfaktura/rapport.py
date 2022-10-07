@@ -8,28 +8,28 @@
 # $Id: oppgradering.py 217 2007-05-02 23:25:16Z havard.dahle $
 ###########################################################################
 
+from pathlib import Path
 import sys, time, os, types
 
 import logging, subprocess
+from typing import Any, Dict, List, Optional
+
+from finfaktura.fakturakomponenter import fakturaOrdre
 
 from . import fakturafeil, fil
 
-try:
-    import reportlab
-    from reportlab.lib.styles import getSampleStyleSheet
-    from reportlab.lib.pagesizes import A4
-    from reportlab.platypus import Paragraph, SimpleDocTemplate
-    REPORTLAB = True
-except ImportError:
-    REPORTLAB = False
-    #raise
+from reportlab.lib.styles import getSampleStyleSheet
+from reportlab.lib.pagesizes import A4
+from reportlab.platypus import Paragraph, SimpleDocTemplate
+
+REPORTLAB = True
 
 
 class rapport:
     'Lager økonomisk rapport på pdf'
     oppdatert = False
 
-    def __init__(self, filnavn=None, rapportinfo={}):
+    def __init__(self, filnavn: Optional[Path] = None, rapportinfo: Dict[Any, Any] = {}):
         if not REPORTLAB:
             raise fakturafeil.InstallasjonsFeil('python-reportlab er ikke installert. Kan ikke lage PDF!')
         if filnavn is None:
@@ -78,11 +78,11 @@ class rapport:
             self.lag()
         return fil.vis(self.filnavn)
 
-    def lastOrdreliste(self, ordreliste):
+    def lastOrdreliste(self, ordreliste: List[fakturaOrdre]):
         for o in ordreliste:
             self.leggTilOrdre(o)
 
-    def leggTilOrdre(self, ordre):
+    def leggTilOrdre(self, ordre: fakturaOrdre):
         self.oppdatert = False
         status = ""
         if self.info['sortering'] is not None:

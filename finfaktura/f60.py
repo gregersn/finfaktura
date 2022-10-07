@@ -64,7 +64,7 @@ import sys, time, os, types
 import logging, subprocess, locale
 
 import io
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, Union
 
 
 class f60Eksisterer(Exception):
@@ -178,7 +178,7 @@ class f60:
                         forfallEpoch: int,
                         fakturatekst: str,
                         vilkaar: str = '',
-                        kid: Optional[int] = None,
+                        kid: Optional[Union[str, bool]] = None,
                         levertEpoch: Optional[int] = None):
         """Sett vital info om fakturaen. Bruk kid=True for å generere kid ut i fra kundenr og fakturanr."""
         self.faktura['nr'] = int(fakturanr)

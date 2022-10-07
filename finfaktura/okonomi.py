@@ -10,7 +10,9 @@
 ###########################################################################
 
 import logging
-from .fakturakomponenter import fakturaOrdre
+import sqlite3
+from typing import List, Optional
+from .fakturakomponenter import fakturaKunde, fakturaOrdre, fakturaVare
 
 
 class ordreHenter:
@@ -20,38 +22,39 @@ class ordreHenter:
     sorter = None
     antall = None
 
-    def __init__(self, db):
+    def __init__(self, db: sqlite3.Connection):
         self.db = db
         self.c = db.cursor()
-        self.begrens = []
-        self.varer = []
-        self.vare = False
+        self.begrens: List[str] = []
+        self.varer: List[int] = []
+        self.vare: bool = False
         self.sorter = None
-        self.antall = None
+        self.antall: Optional[int] = None
 
-    def begrensDato(self, fraEpoch=None, tilEpoch=None):
+    def begrensDato(self, fraEpoch: Optional[int] = None, tilEpoch: Optional[int] = None):
         if fraEpoch is not None:
             self.begrens.append(" ordredato > %i " % fraEpoch)
         if tilEpoch is not None:
             self.begrens.append(" ordredato < %i " % tilEpoch)
 
-    def begrensKunde(self, kunde):
+    def begrensKunde(self, kunde: fakturaKunde):
         self.begrens.append(" kundeID = %i " % kunde._id)
 
-    def begrensVare(self, vare):
-        self.vare = True
-        self.varer.append(vare._id)
+    def begrensVare(self, vare: fakturaVare):
+        if vare._id:
+            self.vare = True
+            self.varer.append(vare._id)
 
-    def begrensAntall(self, antall):
+    def begrensAntall(self, antall: int):
         self.antall = antall
 
-    def visKansellerte(self, vis):
+    def visKansellerte(self, vis: bool):
         if not vis: self.begrens.append(" kansellert = 0 ")
 
-    def visUbetalte(self, vis):
+    def visUbetalte(self, vis: bool):
         if not vis: self.begrens.append(" betalt != 0 ")
 
-    def sorterEtter(self, kolonne):
+    def sorterEtter(self, kolonne: str):
         s = {'dato': 'ordredato', 'kunde': 'kundeID', 'vare': 'vareID'}
         self.sorter = " ORDER BY %s " % s[kolonne]
         if kolonne == 'vare': self.vare = True
@@ -69,10 +72,10 @@ class ordreHenter:
             for v in self.varer:
                 self.begrens.append(" vareID=%i " % v)
         if self.begrens:
-            s += " WHERE " + join(self.begrens, " AND ")
+            s += " WHERE " + " AND ".join(self.begrens)
         if self.sorter:
             s += self.sorter
         if self.antall:
-            s += " LIMIT %i " % antall
+            s += " LIMIT %i " % self.antall
         logging.debug(s)
         return s

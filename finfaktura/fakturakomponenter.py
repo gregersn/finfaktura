@@ -358,14 +358,15 @@ class fakturaFirmainfo(FakturaKomponent):
     adresse: str
     postnummer: Union[int, None]
     poststed: str
-    telefon: Union[int, None]
-    mobil: Union[int, None]
-    telefaks: Union[int, None]
-    kontonummer: Union[int, None]
+    telefon: Union[str, None]
+    mobil: Union[str, None]
+    telefaks: Union[str, None]
+    kontonummer: Union[str, None]
     vilkar: str
     mva: int
     forfall: int
-    logo: str
+    logo: Any
+    www: str
 
     def __init__(self, db: sqlite3.Connection):
         self.db = db

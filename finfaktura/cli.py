@@ -17,6 +17,7 @@ from .fakturabibliotek import FakturaBibliotek, kobleTilDatabase
 
 def cli_faktura():
     db = kobleTilDatabase()
+    assert db is not None
     bib = FakturaBibliotek(db)
     kunder = bib.hentKunder()
     kunde = CLIListe(kunder, "velg kunde: ")

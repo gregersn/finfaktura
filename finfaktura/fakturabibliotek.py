@@ -9,7 +9,7 @@
 ###########################################################################
 
 from pathlib import Path
-import types, os, sys, os.path, shutil
+import os, sys, os.path, shutil
 from time import time, strftime, localtime
 import logging, subprocess
 from typing import Optional
@@ -60,21 +60,21 @@ class FakturaBibliotek:
     def nyKunde(self):
         return fakturaKunde(self.db)
 
-    def hentVarer(self, inkluderSlettede=False, sorterEtterKunde=None):
+    def hentVarer(self, inkluderSlettede: bool = False, sorterEtterKunde: bool = False):
         sql = "SELECT ID FROM %s" % fakturaVare._tabellnavn
         if not inkluderSlettede: sql += " WHERE slettet IS NULL OR slettet = 0"
-        if sorterEtterKunde is not None:
-            sql += " ORDER BY "
+        if sorterEtterKunde:
+            sql += " ORDER BY kunde"
         self.c.execute(sql)
         return [fakturaVare(self.db, z[0]) for z in self.c.fetchall()]
 
     def nyVare(self):
         return fakturaVare(self.db)
 
-    def hentVare(self, Id):
+    def hentVare(self, Id: Optional[int]):
         return fakturaVare(self.db, Id)
 
-    def finnVareEllerLagNy(self, navn, pris, mva, enhet):
+    def finnVareEllerLagNy(self, navn: str, pris: float, mva: float, enhet: str):
         sql = "SELECT ID FROM %s" % fakturaVare._tabellnavn
         sql += " WHERE navn=? AND pris=? AND mva=?"
         #print sql, navn, pris, mva
@@ -94,7 +94,7 @@ class FakturaBibliotek:
             vare.enhet = enhet.strip()
             return vare
 
-    def nyOrdre(self, kunde=None, Id=None, ordredato=None, forfall=None):
+    def nyOrdre(self, kunde=None, Id: Optional[int] = None, ordredato: Optional[int] = None, forfall: Optional[int] = None):
         return fakturaOrdre(self.db, kunde=kunde, Id=Id, firma=self.firmainfo(), dato=ordredato, forfall=forfall)
 
     def hentOrdrer(self):
@@ -102,16 +102,14 @@ class FakturaBibliotek:
         return [fakturaOrdre(self.db, Id=z[0]) for z in self.c.fetchall()]
 
     def firmainfo(self):
-        try:
+        if self.__firmainfo is not None:
             self.__firmainfo.hentEgenskaper()
             self.__firmainfo.sjekkData()
-        except AttributeError:
-            self.__firmainfo = fakturaFirmainfo(self.db)
-        except FirmainfoFeil:
+        else:
             self.__firmainfo = fakturaFirmainfo(self.db)
         return self.__firmainfo
 
-    def hentEgenskapVerdier(self, tabell, egenskap):
+    def hentEgenskapVerdier(self, tabell: str, egenskap: str):
         self.c.execute("SELECT DISTINCT %s FROM %s" % (egenskap, tabell))
         return [str(x[0]) for x in self.c.fetchall() if x[0]]
 
@@ -124,7 +122,7 @@ class FakturaBibliotek:
         self.c.execute("SELECT ID FROM %s" % fakturaSikkerhetskopi._tabellnavn)
         return [fakturaSikkerhetskopi(self.db, Id=z[0]) for z in self.c.fetchall()]
 
-    def sjekkSikkerhetskopier(self, lagNyAutomatisk=False):
+    def sjekkSikkerhetskopier(self, lagNyAutomatisk: bool = False):
         sql = "SELECT Ordrehode.ID, Sikkerhetskopi.ID FROM Ordrehode LEFT OUTER JOIN Sikkerhetskopi ON Ordrehode.ID=Sikkerhetskopi.ordreID WHERE data IS NULL"
         self.c.execute(sql)
         ordrer = []

@@ -138,6 +138,7 @@ class FinFaktura(QtWidgets.QMainWindow):  #Ui_MainWindow): ## leser gui fra fakt
         self.slettetIkon = QtGui.QIcon(':/pix/stop.svg')
 
         try:
+            assert self.db is not None
             self.faktura = FakturaBibliotek(self.db)
             self.firma = self.faktura.firmainfo()
         except DBNyFeil as xxx_todo_changeme:
@@ -171,9 +172,9 @@ class FinFaktura(QtWidgets.QMainWindow):  #Ui_MainWindow): ## leser gui fra fakt
             except OppgraderingsFeil:
                 raise
             except SikkerhetskopiFeil as e:
-                self.alert('Databasen er oppgradert, men kunne ikke lage sikkerhetskopier fordi:\n %s' %
-                           e.message)  # str(e).decode('utf8'))
+                self.alert(f'Databasen er oppgradert, men kunne ikke lage sikkerhetskopier fordi:\n {e}')
             self.databaseTilkobler()
+            assert self.db is not None
             self.faktura = FakturaBibliotek(self.db)
             self.firma = self.faktura.firmainfo()
             self.obs("Databasen er nå oppdatert til nyeste versjon.\nDu bør se over dataene dine og forsikre deg om at alt er i orden.")
@@ -190,6 +191,7 @@ class FinFaktura(QtWidgets.QMainWindow):  #Ui_MainWindow): ## leser gui fra fakt
         self.resize(880, 600)
 
     def avslutt(self):
+        assert self.db is not None
         self.db.commit()
         logging.debug("sikkerhetskopierer databasen: %s ", finnDatabasenavn())
         sikkerhetskopierFil(finnDatabasenavn())
@@ -198,6 +200,7 @@ class FinFaktura(QtWidgets.QMainWindow):  #Ui_MainWindow): ## leser gui fra fakt
 
     def databaseTilkobler(self):
         self.db = kobleTilDatabase()
+        assert self.db is not None
         self.c = self.db.cursor()
 
     def skiftTab(self, w):
@@ -211,18 +214,18 @@ class FinFaktura(QtWidgets.QMainWindow):  #Ui_MainWindow): ## leser gui fra fakt
 
 ################## FAKTURA ########################
 
-    def lukkFakta(self, *ev):
+    def lukkFakta(self, *_):
         self.gui.fakturaFakta.hide()
         self.gui.fakturaHandlinger.show()
         self.gui.fakturaDetaljer.show()
         self.gui.fakturaFakturaliste.show()
 
-    def fakturaContextMenu(self, event):
+    def fakturaContextMenu(self, event: QtGui.QContextMenuEvent):
         try:
             ordre = self.gui.fakturaFakturaliste.selectedItems()[0].ordre
         except IndexError:
             return None  #ingen ordre er valgt
-        meny = QtGui.QMenu(self)
+        meny = QtWidgets.QMenu(self)
         meny.setTitle("Redigér faktura")
         if not ordre.betalt:
             meny.addAction("Er betalt", self.betalFaktura)
@@ -1217,7 +1220,7 @@ class FinFaktura(QtWidgets.QMainWindow):  #Ui_MainWindow): ## leser gui fra fakt
 ############## INTERNE DIALOGER ###################
 
     def visFakturanummer(self):
-        dialog = gui_fakturanummer.nummersettergui()
+        dialog = gui_fakturanummer.NummersetterGUI()
         res = dialog.exec_()
 
     def visEpostOppsett(self):
@@ -1254,10 +1257,10 @@ class FinFaktura(QtWidgets.QMainWindow):  #Ui_MainWindow): ## leser gui fra fakt
 
 ############## GENERELLE METODER ###################
 
-    def alert(self, msg):
+    def alert(self, msg: str):
         QtWidgets.QMessageBox.critical(self, "Feil!", msg, QtWidgets.QMessageBox.Ok)
 
-    def obs(self, msg):
+    def obs(self, msg: str):
         QtWidgets.QMessageBox.information(self, "Obs!", msg, QtWidgets.QMessageBox.Ok)
 
     def JaNei(self, s: str):
@@ -1267,7 +1270,7 @@ class FinFaktura(QtWidgets.QMainWindow):  #Ui_MainWindow): ## leser gui fra fakt
         return svar == QtWidgets.QMessageBox.Yes
 
 
-class tekstVindu(object):
+class tekstVindu:
 
     def __init__(self, tittel, tekst):
         self.gui = QtWidgets.QDialog()
