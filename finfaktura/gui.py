@@ -321,7 +321,7 @@ class FinFaktura(QtWidgets.QMainWindow):  #Ui_MainWindow): ## leser gui fra fakt
             self.gui.fakturaFaktaMottaker.setFocus()
         self.gui.fakturaFaktaTekst.setPlainText("")
         self.gui.fakturaVareliste.clearContents()
-        self.leggVareTilOrdre(rad=0)  # legg til tom rad
+        self.leggVareTilOrdre()  # legg til tom rad
         self.gui.fakturaFaktaDato.setDate(QtCore.QDate.currentDate())
         self.gui.fakturaFaktaLeveringsdato.setDate(QtCore.QDate.currentDate())
         self.gui.fakturaFaktaLeveringsdato.setEnabled(False)
@@ -409,7 +409,7 @@ class FinFaktura(QtWidgets.QMainWindow):  #Ui_MainWindow): ## leser gui fra fakt
 #     self.nyFaktura(ordre = rad.ordre, ordrelinje = linje)
 
     def leggVareTilOrdre(self, rad: Optional[int] = None):
-        if rad is None:
+        if not rad:
             rad = self.gui.fakturaVareliste.rowCount()
         antallGUI = QtWidgets.QDoubleSpinBox(self.gui.fakturaVareliste)
         antallGUI.setMaximum(100000.0)
