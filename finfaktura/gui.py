@@ -387,7 +387,7 @@ class FinFaktura(QtWidgets.QMainWindow):  #Ui_MainWindow): ## leser gui fra fakt
         self.visFaktura()  # oppdater listen slik at den nye fakturaen blir med
         try:
             # velg den nye fakturaen - søk etter den nye fakturaens ID i lista
-            nylinje = self.gui.fakturaFakturaliste.findItems("%06d" % f.ID, QtCore.Qt.MatchExactly, 0)[0]
+            nylinje = self.gui.fakturaFakturaliste.findItems("%06d" % f.ID, QtCore.Qt.MatchFlag.MatchExactly, 0)[0]
             self.gui.fakturaFakturaliste.setCurrentItem(nylinje)
         except IndexError:
             pass
@@ -1262,10 +1262,10 @@ class FinFaktura(QtWidgets.QMainWindow):  #Ui_MainWindow): ## leser gui fra fakt
         QtWidgets.QMessageBox.information(self, "Obs!", msg, QtWidgets.QMessageBox.StandardButton.Ok)
 
     def JaNei(self, s: str):
-        svar = QtWidgets.QMessageBox.question(self, "Hm?", s,
-                                              QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No | QtWidgets.QMessageBox.Default,
-                                              QtWidgets.QMessageBox.NoButton)
-        return svar == QtWidgets.QMessageBox.Yes
+        svar = QtWidgets.QMessageBox.question(
+            self, "Hm?", s, QtWidgets.QMessageBox.StandardButton.Yes | QtWidgets.QMessageBox.StandardButton.No
+            | QtWidgets.QMessageBox.StandardButton.Default, QtWidgets.QMessageBox.StandardButton.No)
+        return svar == QtWidgets.QMessageBox.StandardButton.Yes
 
 
 class tekstVindu:
