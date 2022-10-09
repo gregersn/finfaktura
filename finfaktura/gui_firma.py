@@ -45,8 +45,8 @@ class FirmaOppsett(firmainfo_ui.Ui_firmaOppsett):
         self.vis()
         #self.visLogo()
 
-    def exec_(self):
-        res = self.gui.exec_()
+    def exec(self):
+        res = self.gui.exec()
         if res == QtWidgets.QDialog.Accepted:
             return self.samleInfo()
         return {}

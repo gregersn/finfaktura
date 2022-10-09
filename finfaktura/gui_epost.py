@@ -11,7 +11,7 @@
 ###########################################################################
 
 import logging
-from PyQt5 import QtCore, QtGui, QtWidgets
+from PyQt5 import QtWidgets
 from .ui import epost_ui
 from . import epost
 
@@ -31,8 +31,8 @@ class epostOppsett(epost_ui.Ui_epostOppsett):
         self.vis()
         self.gui.show()
 
-    def exec_(self):
-        res = self.gui.exec_()
+    def exec(self):
+        res = self.gui.exec()
         if res == QtWidgets.QDialog.Accepted:
             logging.debug('oppdaterer')
             self.oppdaterEpost()

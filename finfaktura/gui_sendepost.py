@@ -44,8 +44,8 @@ class sendEpost(sendepost_ui.Ui_sendEpost):
             i = QtWidgets.QTreeWidgetItem([f, mtype, prettySize(size)])
             self.vedlegg.addTopLevelItem(i)
 
-    def exec_(self):
-        res = self.gui.exec_()
+    def exec(self):
+        res = self.gui.exec()
         return res, str(self.tekst.toPlainText())
 
 

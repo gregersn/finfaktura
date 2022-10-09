@@ -11,3 +11,6 @@ build/
 /finfaktura/ui/firmainfo_ui.py
 /finfaktura/ui/sendepost_ui.py
 /finfaktura/ui/sikkerhetskopi_ui.py
+.venv/
+*.egg-info/
+faktura.db

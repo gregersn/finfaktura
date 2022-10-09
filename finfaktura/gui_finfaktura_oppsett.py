@@ -27,8 +27,8 @@ class finfakturaOppsett(finfaktura_oppsett_ui.Ui_FinFakturaOppsett):
         self.vis()
         self.gui.show()
 
-    def exec_(self):
-        res = self.gui.exec_()
+    def exec(self):
+        res = self.gui.exec()
         if res == QtWidgets.QDialog.Accepted:
             logging.debug('oppdaterer')
             self.oppdater()

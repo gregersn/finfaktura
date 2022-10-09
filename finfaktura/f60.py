@@ -64,7 +64,7 @@ import sys, time, os, types
 import logging, subprocess, locale
 
 import io
-from typing import Any, Dict, Optional, Union
+from typing import Any, Callable, Dict, List, Optional, Union
 
 
 class f60Eksisterer(Exception):
@@ -83,17 +83,14 @@ class f60InstallasjonsFeil(Exception):
     pass
 
 
-try:
-    import reportlab
-    from reportlab.pdfgen import canvas
-    from reportlab.lib.units import mm, inch
-    from reportlab.lib.colors import yellow, pink, white
-    from reportlab.lib.pagesizes import A4
-    from reportlab.pdfgen.pdfimages import PDFImage
-    REPORTLAB = True
-except ImportError:
-    REPORTLAB = False
-    raise f60InstallasjonsFeil("python-modulen `reportlab' mangler. Kan ikke lage PDF!")
+import reportlab
+from reportlab.pdfgen import canvas
+from reportlab.lib.units import mm, inch
+from reportlab.lib.colors import yellow, pink, white
+from reportlab.lib.pagesizes import A4
+from reportlab.pdfgen.pdfimages import PDFImage
+
+REPORTLAB = True
 
 __version__ = '0.20'
 __license__ = 'GPLv2'
@@ -194,7 +191,7 @@ class f60:
             if not self.sjekkKid(kid): raise f60FeilKID('KID-nummeret er ikke riktig')
         self.faktura['kid'] = kid
 
-    def settOrdrelinje(self, ordrelinje: int):
+    def settOrdrelinje(self, ordrelinje: Union[List[Any], Callable[[Any], Any]]):  # TODO: Rydd opp typing
         """Sett fakturaens ordrelinjer. Kan være
         1. en list() hvor hver ordre er en
           sekvens: [tekst, kvantum, enhetspris, mva]

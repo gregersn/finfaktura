@@ -34,7 +34,6 @@ from finfaktura.fakturafeil import *
 
 from PyQt5 import QtCore, QtGui, uic, QtWidgets
 try:
-    print("Trying to import some stuff")
     from finfaktura.ui.faktura_ui import Ui_FinFaktura
     from finfaktura.ui import faktura_rc
     from . import gui_sendepost, gui_epost, gui_finfaktura_oppsett, gui_firma, gui_fakturanummer
@@ -81,7 +80,7 @@ class FinFaktura(QtWidgets.QMainWindow):  #Ui_MainWindow): ## leser gui fra fakt
         #     self.fakturaFakturaliste.triggered.connect(const QtGui.QPoint&, int)"), self.redigerFaktura)
         self.gui.fakturaFaktaLegginn.clicked.connect(self.leggTilFaktura)
         self.gui.fakturaFakturaliste.currentItemChanged.connect(self.visFakturadetaljer)
-        self.gui.fakturaVareliste.cellChanged.connect(self.fakturaVarelisteSynk)
+        self.gui.fakturaVareliste.itemChanged.connect(self.fakturaVarelisteSynk)
         self.gui.fakturaFaktaVareLeggtil.clicked.connect(self.leggVareTilOrdre)
         #self.gui.fakturaFaktaVareFjern.triggered.connect(self.fjernVareFraOrdre)
         self.gui.fakturaLagEpost.clicked.connect(self.lagFakturaEpost)
@@ -239,7 +238,7 @@ class FinFaktura(QtWidgets.QMainWindow):  #Ui_MainWindow): ## leser gui fra fakt
             meny.addAction("Ikke kansellert", self.avkansellerFaktura)
         meny.addAction("Vis kvittering", self.visFakturaKvittering)
         #meny.addAction("Dupliser", self.dupliserFaktura)
-        meny.exec_(event.globalPos())
+        meny.exec(event.globalPos())
 
     def visFaktura(self):
         visKansellerte = self.gui.fakturaVisKansellerte.isChecked()
@@ -397,7 +396,7 @@ class FinFaktura(QtWidgets.QMainWindow):  #Ui_MainWindow): ## leser gui fra fakt
 
         #skal vi lage blanketter nå?
         s = 'Den nye fakturaen er laget. Vil du lage tilhørende blankett nå?'
-        knapp = QtGui.QMessageBox.information(self, 'Lage blankett?', s, 'Epost', 'Papir', 'Senere', 0, 2)
+        knapp = QtWidgets.QMessageBox.information(self, 'Lage blankett?', s, 'Epost', 'Papir', 'Senere', 0, 2)
         if knapp == 0: self.lagFaktura(Type='epost')
         elif knapp == 1: self.lagFaktura(Type='papir')
 
@@ -453,25 +452,26 @@ class FinFaktura(QtWidgets.QMainWindow):  #Ui_MainWindow): ## leser gui fra fakt
         return self.fakturaVarelisteSynk(rad, 0)
 
     def fakturaVarelisteSynk(self, rad: int, kol: int):
-        logging.debug("synk: %s, %s", rad, kol)
+        logging.debug("Endring i vareliste: %s, %s", rad, kol)
         sender = self.gui.fakturaVareliste.cellWidget(rad, kol)
-        logging.debug("Sender is: %s", sender)
         if kol == 0:  # endret på varen -> oppdater metadata
+            logging.debug("Endring av vare i linje.")
             _vare = sender.itemData(sender.currentIndex())
             logging.debug("Vare is: %s", _vare)
             if _vare:
+                logging.debug("Vare som finnes.")
                 vare = _vare
+                self.gui.fakturaVareliste.cellWidget(rad, 1).setSuffix(' ' + str(vare.enhet))
+                self.gui.fakturaVareliste.cellWidget(rad, 2).setValue(float(vare.pris))
+                self.gui.fakturaVareliste.cellWidget(rad, 3).setValue(float(vare.mva))
             else:
                 # ny vare, tøm andre felt
                 logging.debug("ny vare opprettet: %s", str(sender.currentText()))
                 self.gui.fakturaVareliste.cellWidget(rad, 1).setSuffix('')
                 self.gui.fakturaVareliste.cellWidget(rad, 2).setValue(0.0)
                 self.gui.fakturaVareliste.cellWidget(rad, 3).setValue(float(self.firma.mva))
-                return
-            self.gui.fakturaVareliste.cellWidget(rad, 1).setSuffix(' ' + str(vare.enhet))
-            self.gui.fakturaVareliste.cellWidget(rad, 2).setValue(float(vare.pris))
-            self.gui.fakturaVareliste.cellWidget(rad, 3).setValue(float(vare.mva))
         else:
+            logging.debug("Endret varedata")
             # endret på antall, mva eller pris -> oppdater sum
             p = mva = 0.0
             for i in range(self.gui.fakturaVareliste.rowCount()):
@@ -688,7 +688,7 @@ class FinFaktura(QtWidgets.QMainWindow):  #Ui_MainWindow): ## leser gui fra fakt
 
     def visEpostfaktura(self, ordre, pdfFilnavn):
         epostboks = gui_sendepost.sendEpost(self, ordre)
-        res, tekst = epostboks.exec_()
+        res, tekst = epostboks.exec()
         if res == QtWidgets.QDialog.Accepted:
             return self.sendEpostfaktura(ordre, tekst, pdfFilnavn)
 
@@ -717,14 +717,14 @@ class FinFaktura(QtWidgets.QMainWindow):  #Ui_MainWindow): ## leser gui fra fakt
             kunde = self.gui.kundeKundeliste.selectedItems()[0].kunde
         except IndexError:
             return None  # ingen kunde er valgt i lista
-        meny = QtGui.QMenu(self)
+        meny = QtWidgets.QMenu(self)
         meny.setTitle("Redigér kunde")
         if not kunde.slettet:
             meny.addAction("Redigér", self.redigerKunde)
             meny.addAction("Slett", self.slettKunde)
         else:
             meny.addAction("Ikke slettet", self.ikkeSlettKunde)
-        meny.exec_(event.globalPos())
+        meny.exec(event.globalPos())
 
     def visKunder(self):
         visFjernede = self.gui.kundeVisFjernede.isChecked()
@@ -940,14 +940,14 @@ class FinFaktura(QtWidgets.QMainWindow):  #Ui_MainWindow): ## leser gui fra fakt
             vare = self.gui.varerVareliste.selectedItems()[0].vare
         except IndexError:
             return None  # ingen vare er valgt i lista
-        meny = QtGui.QMenu(self)
+        meny = QtWidgets.QMenu(self)
         meny.setTitle("Redigér faktura")
         if not vare.slettet:
             meny.addAction("Redigér", self.redigerVare)
             meny.addAction("Slett", self.slettVare)
         else:
             meny.addAction("Ikke slettet", self.ikkeSlettVare)
-        meny.exec_(event.globalPos())
+        meny.exec(event.globalPos())
 
     def visVarer(self):
         visFjernede = self.gui.varerVisFjernede.isChecked()
@@ -1008,10 +1008,10 @@ class FinFaktura(QtWidgets.QMainWindow):  #Ui_MainWindow): ## leser gui fra fakt
             #self.gui.varerInfoPris:"Pris",
         }
         for obj in list(kravkart.keys()):
-            if isinstance(obj, (QtGui.QSpinBox, QtGui.QDoubleSpinBox)): test = obj.value() > 0.0
-            elif isinstance(obj, QtGui.QComboBox): test = obj.currentText()
-            elif isinstance(obj, QtGui.QLineEdit): test = obj.text()
-            elif isinstance(obj, QtGui.QPlainTextEdit): test = obj.toPlainText()
+            if isinstance(obj, (QtWidgets.QSpinBox, QtWidgets.QDoubleSpinBox)): test = obj.value() > 0.0
+            elif isinstance(obj, QtWidgets.QComboBox): test = obj.currentText()
+            elif isinstance(obj, QtWidgets.QLineEdit): test = obj.text()
+            elif isinstance(obj, QtWidgets.QPlainTextEdit): test = obj.toPlainText()
             if not test:
                 self.alert('Du er nødt til å oppgi %s' % (kravkart[obj].lower()))
                 obj.setFocus()
@@ -1221,19 +1221,19 @@ class FinFaktura(QtWidgets.QMainWindow):  #Ui_MainWindow): ## leser gui fra fakt
 
     def visFakturanummer(self):
         dialog = gui_fakturanummer.NummersetterGUI()
-        res = dialog.exec_()
+        res = dialog.exec()
 
     def visEpostOppsett(self):
         dialog = gui_epost.epostOppsett(self.faktura)
-        res = dialog.exec_()
+        res = dialog.exec()
 
     def visProgramOppsett(self):
         dialog = gui_finfaktura_oppsett.finfakturaOppsett(self.faktura)
-        res = dialog.exec_()
+        res = dialog.exec()
 
     def visFirmaOppsett(self):
         dialog = gui_firma.FirmaOppsett(self.firma)
-        res = dialog.exec_()
+        res = dialog.exec()
         logging.debug('visFirmaOppsett.exec: %s', res)
         for egenskap, verdi in res.items():
             logging.debug('setter %s = %s', egenskap, repr(verdi))
@@ -1248,7 +1248,7 @@ class FinFaktura(QtWidgets.QMainWindow):  #Ui_MainWindow): ## leser gui fra fakt
             r = ':/data/LICENSE'
         try:
             vindu = tekstVindu(tittel, lesRessurs(r))
-            res = vindu.exec_()
+            res = vindu.exec()
             return res
         except IOError as xxx_todo_changeme5:
             (e) = xxx_todo_changeme5
@@ -1296,8 +1296,8 @@ class tekstVindu:
 
         self.gui.show()
 
-    def exec_(self):
-        return self.gui.exec_()
+    def exec(self):
+        return self.gui.exec()
 
 
 def start():
@@ -1314,4 +1314,4 @@ def start():
 
     ff = FinFaktura()
     app.lastWindowClosed.connect(ff.avslutt)
-    return app.exec_()
+    return app.exec()

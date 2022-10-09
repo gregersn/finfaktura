@@ -139,4 +139,4 @@ if __name__ == '__main__':
         logging.basicConfig(level=logging.DEBUG)
     a = QtGui.QApplication(sys.argv)
     p = NummersetterGUI()
-    a.exec_()
+    a.exec()
