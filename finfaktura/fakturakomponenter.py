@@ -25,7 +25,7 @@ PDFVIS = "/usr/bin/xdg-open"
 class FakturaKomponent:
     _egenskaper: Dict[str, Any] = {}
     _egenskaperAldriCache: List[str]
-    _tabellnavn = ""
+    tabellnavn = ""
     _sqlExists = True
     _egenskaperBlob = []
 
@@ -65,7 +65,7 @@ class FakturaKomponent:
 
     def hentEgenskaperListe(self):
         try:
-            self.c.execute("SELECT * FROM %s LIMIT 1" % self._tabellnavn)
+            self.c.execute("SELECT * FROM %s LIMIT 1" % self.tabellnavn)
         except sqlite3.OperationalError:
             raise
         self._egenskaperListe = [z[0] for z in self.c.description]
@@ -80,29 +80,29 @@ class FakturaKomponent:
     def hentEgenskaper(self):
         if self._id is None:
             return False
-        #logging.debug("SELECT * FROM %s WHERE ID=?" % self._tabellnavn, (self._id,))
-        self.c.execute("SELECT * FROM %s WHERE ID=?" % self._tabellnavn, (self._id, ))
+        #logging.debug("SELECT * FROM %s WHERE ID=?" % self.tabellnavn, (self._id,))
+        self.c.execute("SELECT * FROM %s WHERE ID=?" % self.tabellnavn, (self._id, ))
         r = self.c.fetchone()
-        if r is None: raise DBTomFeil('Det finnes ingen %s med ID %s' % (self._tabellnavn, self._id))
+        if r is None: raise DBTomFeil('Det finnes ingen %s med ID %s' % (self.tabellnavn, self._id))
         for z in list(self._egenskaper.keys()):
             verdi = None
             try:
                 verdi = r[self._egenskaperListe.index(z)]
             except TypeError:
-                print(self._tabellnavn, self._id, z, self._egenskaperListe.index(z), r)
+                print(self.tabellnavn, self._id, z, self._egenskaperListe.index(z), r)
 
             self._egenskaper.update({z: r[self._egenskaperListe.index(z)]})
             self._egenskaper[z] = verdi
 
     def oppdaterEgenskap(self, egenskap: str, verdi: Any):
-        _sql = "UPDATE %s SET %s=? WHERE ID=?" % (self._tabellnavn, egenskap)
+        _sql = "UPDATE %s SET %s=? WHERE ID=?" % (self.tabellnavn, egenskap)
         logging.debug("%s <= %s, %s", _sql, repr(verdi), self._id)
         self.c.execute(_sql, (verdi, self._id))
         self.db.commit()
 
     def nyId(self):
-        #       logging.debug("nyId: -> %s <- %s" % (self._tabellnavn, self._IDnavn))
-        self.c.execute("INSERT INTO %s (ID) VALUES (NULL)" % self._tabellnavn)
+        #       logging.debug("nyId: -> %s <- %s" % (self.tabellnavn, self._IDnavn))
+        self.c.execute("INSERT INTO %s (ID) VALUES (NULL)" % self.tabellnavn)
         self.db.commit()
         return self.c.lastrowid
 
@@ -123,7 +123,7 @@ class FakturaKomponent:
 
 
 class fakturaKunde(FakturaKomponent):
-    _tabellnavn = "Kunde"
+    tabellnavn = "Kunde"
 
     slettet: int
     navn: str
@@ -177,13 +177,12 @@ class fakturaKunde(FakturaKomponent):
     def finnOrdrer(self):
         'Finner alle gyldige ordrer tilhørende denne kunden'
         #Finn alle id-ene først
-        self.c.execute('SELECT ID FROM %s WHERE kundeID=? AND kansellert=0 ORDER BY ordredato ASC' % fakturaOrdre._tabellnavn,
-                       (self._id, ))
+        self.c.execute('SELECT ID FROM %s WHERE kundeID=? AND kansellert=0 ORDER BY ordredato ASC' % fakturaOrdre.tabellnavn, (self._id, ))
         return [fakturaOrdre(self.db, kunde=self, Id=i[0]) for i in self.c.fetchall()]
 
 
 class fakturaVare(FakturaKomponent):
-    _tabellnavn = "Vare"
+    tabellnavn = "Vare"
     slettet: int
     navn: str
     detaljer: str
@@ -240,7 +239,7 @@ class fakturaVare(FakturaKomponent):
 
 
 class fakturaOrdre(FakturaKomponent):
-    _tabellnavn = "Ordrehode"
+    tabellnavn = "Ordrehode"
     linje: List['fakturaOrdrelinje'] = []
     kundeID: int
     ordredato: int
@@ -288,7 +287,7 @@ class fakturaOrdre(FakturaKomponent):
         if self.ordreforfall is None:
             self.ordreforfall = int(self.ordredato +
                                     3600 * 24 * self.firma.forfall)  # .firma.forfall er hele dager - ganger opp til sekunder
-        self.c.execute("INSERT INTO %s (ID, kundeID, ordredato, forfall) VALUES (NULL, ?, ?, ?)" % self._tabellnavn, (
+        self.c.execute("INSERT INTO %s (ID, kundeID, ordredato, forfall) VALUES (NULL, ?, ?, ?)" % self.tabellnavn, (
             self.kunde._id,
             self.ordredato,
             self.ordreforfall,
@@ -302,7 +301,7 @@ class fakturaOrdre(FakturaKomponent):
 
     def finnVarer(self):
         self.linje = []
-        self.c.execute("SELECT ID FROM %s WHERE ordrehodeID=?" % fakturaOrdrelinje._tabellnavn, (self._id, ))
+        self.c.execute("SELECT ID FROM %s WHERE ordrehodeID=?" % fakturaOrdrelinje.tabellnavn, (self._id, ))
         for linjeID in [x[0] for x in self.c.fetchall()]:
             o = fakturaOrdrelinje(self.db, self, Id=linjeID)
             self.linje.append(o)
@@ -359,12 +358,12 @@ class fakturaOrdre(FakturaKomponent):
         return not self.betalt and time.time() > self.forfall
 
     def hentSikkerhetskopi(self):
-        self.c.execute("SELECT ID FROM %s WHERE ordreID=?" % fakturaSikkerhetskopi._tabellnavn, (self._id, ))
+        self.c.execute("SELECT ID FROM %s WHERE ordreID=?" % fakturaSikkerhetskopi.tabellnavn, (self._id, ))
         return fakturaSikkerhetskopi(self.db, Id=self.c.fetchone()[0])
 
 
 class fakturaOrdrelinje(FakturaKomponent):
-    _tabellnavn = "Ordrelinje"
+    tabellnavn = "Ordrelinje"
 
     ordrehodeID: int
     vareID: int
@@ -386,7 +385,7 @@ class fakturaOrdrelinje(FakturaKomponent):
         if Id is None:
             assert self.vare is not None
             c = db.cursor()
-            c.execute("INSERT INTO %s (ID, ordrehodeID, vareID, kvantum, enhetspris, mva) VALUES (NULL, ?, ?, ?, ?, ?)" % self._tabellnavn,
+            c.execute("INSERT INTO %s (ID, ordrehodeID, vareID, kvantum, enhetspris, mva) VALUES (NULL, ?, ?, ?, ?, ?)" % self.tabellnavn,
                       (self.ordre._id, self.vare._id, kvantum, enhetspris, mva))
             db.commit()
             Id = c.lastrowid
@@ -413,7 +412,7 @@ class fakturaOrdrelinje(FakturaKomponent):
 
 
 class fakturaFirmainfo(FakturaKomponent):
-    _tabellnavn = "Firma"
+    tabellnavn = "Firma"
     _id = 1
     _egenskaperAldriCache = []
 
@@ -463,7 +462,7 @@ class fakturaFirmainfo(FakturaKomponent):
         nyFirmanavn = "Fryktelig fint firma"
         nyMva = 25  #prosent
         nyForfall = 21  #dager
-        self.c.execute("INSERT INTO %s (ID, firmanavn, mva, forfall) VALUES (?,?,?,?)" % self._tabellnavn,
+        self.c.execute("INSERT INTO %s (ID, firmanavn, mva, forfall) VALUES (?,?,?,?)" % self.tabellnavn,
                        (self._id, nyFirmanavn, nyMva, nyForfall))
 
         self.db.commit()
@@ -482,7 +481,7 @@ class fakturaFirmainfo(FakturaKomponent):
 
 
 class FakturaOppsett(FakturaKomponent):
-    _tabellnavn = "Oppsett"
+    tabellnavn = "Oppsett"
     _id = 1
 
     databaseversion: float
@@ -501,7 +500,7 @@ class FakturaOppsett(FakturaKomponent):
         mangler: List[Any] = []
         for obj in datastrukturer:
             try:
-                c.execute(f"SELECT * FROM {obj._tabellnavn} LIMIT 1")
+                c.execute(f"SELECT * FROM {obj.tabellnavn} LIMIT 1")
             except sqlite3.DatabaseError:
                 # db mangler eller er korrupt
                 # for å finne ut om det er en gammel versjon
@@ -514,13 +513,13 @@ class FakturaOppsett(FakturaKomponent):
         elif mangler:  #noen av strukturene mangler, dette er en gammel fil
             if versjonsjekk:
                 raise DBGammelFeil("Databasen er gammel eller korrupt, følgende felt mangler: %s" %
-                                   ",".join([o._tabellnavn for o in mangler]))
+                                   ",".join([o.tabellnavn for o in mangler]))
 
         try:
             FakturaKomponent.__init__(self, db, Id=self._id)
         except DBTomFeil:
             # finner ikke oppsett. Ny, tom database
-            sql = "INSERT INTO %s (ID, databaseversjon, fakturakatalog) VALUES (?,?,?)" % self._tabellnavn
+            sql = "INSERT INTO %s (ID, databaseversjon, fakturakatalog) VALUES (?,?,?)" % self.tabellnavn
 
             c.execute(sql, (
                 self._id,
@@ -533,7 +532,7 @@ class FakturaOppsett(FakturaKomponent):
             # tabellen finnes ikke
             self._sqlExists = False
             if versjonsjekk:
-                raise DBGammelFeil("Databasen mangler tabellen '%s'" % self._tabellnavn)
+                raise DBGammelFeil("Databasen mangler tabellen '%s'" % self.tabellnavn)
 
         if not versjonsjekk: return
 
@@ -562,7 +561,7 @@ class FakturaOppsett(FakturaKomponent):
 
 
 class fakturaSikkerhetskopi(FakturaKomponent):
-    _tabellnavn = "Sikkerhetskopi"
+    tabellnavn = "Sikkerhetskopi"
     ordreID: int
     dato: int
     data: Optional['pdfType']
@@ -572,7 +571,7 @@ class fakturaSikkerhetskopi(FakturaKomponent):
         if ordre is not None:
             self.ordre = ordre
             c = db.cursor()
-            c.execute("INSERT INTO %s (ID, ordreID, dato) VALUES (NULL, ?, ?)" % self._tabellnavn, (self.ordre._id, self.dato))
+            c.execute("INSERT INTO %s (ID, ordreID, dato) VALUES (NULL, ?, ?)" % self.tabellnavn, (self.ordre._id, self.dato))
             db.commit()
             Id = c.lastrowid
             FakturaKomponent.__init__(self, db, Id)
@@ -601,7 +600,7 @@ class fakturaSikkerhetskopi(FakturaKomponent):
     def hentEgenskaper(self):
         if self._id is None:
             return False
-        sql = "SELECT ID, ordreID, dato, CAST(data as blob) FROM %s WHERE ID=?" % self._tabellnavn
+        sql = "SELECT ID, ordreID, dato, CAST(data as blob) FROM %s WHERE ID=?" % self.tabellnavn
         self.c.execute(sql, (self._id, ))
         r = self.c.fetchone()
         self._egenskaper['ordreID'] = r[1]
@@ -631,7 +630,7 @@ class fakturaSikkerhetskopi(FakturaKomponent):
 
 
 class fakturaEpost(FakturaKomponent):
-    _tabellnavn = "Epost"
+    tabellnavn = "Epost"
     _id = 1
 
     bcc: str
@@ -640,8 +639,8 @@ class fakturaEpost(FakturaKomponent):
     gmailpassord: str
     smtpserver: str
     smtpport: int
-    smtptls: int
-    smtpauth: int
+    smtptls: bool
+    smtpauth: bool
     smtpbruker: str
     smtppassord: str
     sendmailsti: str

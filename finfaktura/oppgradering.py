@@ -135,7 +135,7 @@ class oppgrader:
 
     def _oppgrader(self, objekt):
         self.logg.write("oppgraderer %s #%s fra versjon %s til versjon %s\n" %
-                        (objekt._tabellnavn, objekt._id, self.gmlbib.versjon(), self.nybib.versjon()))
+                        (objekt.tabellnavn, objekt._id, self.gmlbib.versjon(), self.nybib.versjon()))
         # først laster vi alle egenskapene til objektet inn i en ny dict
         # så går vi gjennom alle endringene og gjør endringene på den nye dict-en
         # returnerer den nye dict.
@@ -148,7 +148,7 @@ class oppgrader:
             # gamle versjoner brukte ikke utf8
             self.logg.write("Gammel versjon < 2.2 oppdaget, konverterer fra latin1 til unicode\n")
             egenskaper = self._unicode(egenskaper)
-        for endringer in self.endringsmegler(objekt._tabellnavn):
+        for endringer in self.endringsmegler(objekt.tabellnavn):
             for felt in list(endringer.keys()):
                 if endringer[felt] == True:  #lagt til
                     if felt not in egenskaper:
@@ -163,8 +163,8 @@ class oppgrader:
 
         k = objekt
 
-        sql = "INSERT INTO %s (%s) VALUES (%s)" % (k._tabellnavn, join(list(egenskaper.keys()),
-                                                                       ","), join(['?' for z in list(egenskaper.values())], ","))
+        sql = "INSERT INTO %s (%s) VALUES (%s)" % (k.tabellnavn, join(list(egenskaper.keys()),
+                                                                      ","), join(['?' for z in list(egenskaper.values())], ","))
         try:
             self.nydbc.execute(sql, list(egenskaper.values()))
         except:

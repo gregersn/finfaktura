@@ -75,9 +75,9 @@ def CLIenkoding():
 
 def CLIListe(liste: List[Any], tekst: Optional[str] = None):
     if not tekst:
-        tekst = "velg blant %s:" % len(liste)
+        tekst = f"velg blant {len(liste)}:"
     try:
-        print("velg fra liste (%s valg):" % len(liste))
+        print(f"velg fra liste ({len(liste)} valg):")
         i = 1
         for l in liste:
             print("\t", i, str(l))

@@ -10,18 +10,21 @@
 
 from pathlib import Path
 import os
-import sys
 import os.path
 import shutil
 from time import time
 import logging
-from typing import Any, List, Optional
+from typing import Any, List, Optional, Union
 # import xml.etree.ElementTree  # help py2exe
 import sqlite3
+from PyQt6 import QtWidgets
+from PyQt6 import QtCore
 
 from . import fil
 from .fakturakomponenter import FakturaOppsett, fakturaEpost, fakturaFirmainfo, \
         fakturaOrdre, fakturaVare, fakturaKunde, fakturaSikkerhetskopi
+
+from .fakturafeil import DBVersjonFeil, FakturaFeil, KundeFeil, PDFFeil, SikkerhetskopiFeil
 
 from . import epost
 
@@ -58,7 +61,7 @@ class FakturaBibliotek:
         return fakturaKunde(self.db, kundeID)
 
     def hentKunder(self, inkluderSlettede: bool = False):
-        sql = "SELECT ID FROM %s" % fakturaKunde._tabellnavn
+        sql = "SELECT ID FROM %s" % fakturaKunde.tabellnavn
         if not inkluderSlettede: sql += " WHERE slettet IS NULL OR slettet = 0"
         self.c.execute(sql)
         return [fakturaKunde(self.db, z[0]) for z in self.c.fetchall()]
@@ -67,7 +70,7 @@ class FakturaBibliotek:
         return fakturaKunde(self.db)
 
     def hentVarer(self, inkluderSlettede: bool = False, sorterEtterKunde: bool = False):
-        sql = "SELECT ID FROM %s" % fakturaVare._tabellnavn
+        sql = "SELECT ID FROM %s" % fakturaVare.tabellnavn
         if not inkluderSlettede: sql += " WHERE slettet IS NULL OR slettet = 0"
         if sorterEtterKunde:
             sql += " ORDER BY kunde"
@@ -81,7 +84,7 @@ class FakturaBibliotek:
         return fakturaVare(self.db, Id)
 
     def finnVareEllerLagNy(self, navn: str, pris: float, mva: int, enhet: str):
-        sql = "SELECT ID FROM %s" % fakturaVare._tabellnavn
+        sql = "SELECT ID FROM %s" % fakturaVare.tabellnavn
         sql += " WHERE navn=? AND pris=? AND mva=?"
         #print sql, navn, pris, mva
         self.c.execute(sql, (
@@ -108,7 +111,7 @@ class FakturaBibliotek:
         return fakturaOrdre(self.db, kunde=kunde, Id=Id, firma=self.firmainfo(), dato=ordredato, forfall=forfall)
 
     def hentOrdrer(self):
-        self.c.execute("SELECT ID FROM %s" % fakturaOrdre._tabellnavn)
+        self.c.execute("SELECT ID FROM %s" % fakturaOrdre.tabellnavn)
         return [fakturaOrdre(self.db, Id=z[0]) for z in self.c.fetchall()]
 
     def firmainfo(self):
@@ -129,7 +132,7 @@ class FakturaBibliotek:
         return s
 
     def hentSikkerhetskopier(self):
-        self.c.execute("SELECT ID FROM %s" % fakturaSikkerhetskopi._tabellnavn)
+        self.c.execute("SELECT ID FROM %s" % fakturaSikkerhetskopi.tabellnavn)
         return [fakturaSikkerhetskopi(self.db, Id=z[0]) for z in self.c.fetchall()]
 
     def sjekkSikkerhetskopier(self, lagNyAutomatisk: bool = False):
@@ -149,7 +152,7 @@ class FakturaBibliotek:
                     #historikk.pdfSikkerhetskopi(o, True, "sjekksikkerhetskopier(lagNyAutomatisk=True)")
                 except FakturaFeil as e:
                     #historikk.pdfSikkerhetskopi(o, False, "sjekksikkerhetskopier: %s" % e)
-                    raise SikkerhetskopiFeil('Kunne ikke lage sikkerhetskopi for ordre #%s! Årsak:\n%s' % (z[0], e))
+                    raise SikkerhetskopiFeil(f'Kunne ikke lage sikkerhetskopi for ordre #{z[0]}! Årsak:\n{e}') from e
             else:
                 ordrer.append(o)
         return ordrer
@@ -169,8 +172,8 @@ class FakturaBibliotek:
             assert ordre.kunde.id is not None
             pdf.settKundeinfo(ordre.kunde.id, ordre.kunde.postadresse())
         except KundeFeil as e:
-            raise FakturaFeil("Kunne ikke lage PDF! %s" % e)
-        pdf.settOrdrelinje(ordre.hentOrdrelinje)
+            raise FakturaFeil(f"Kunne ikke lage PDF! {e}") from e
+        pdf.settOrdrelinje(ordre.hentOrdrelinje())
         if blankettType.lower() == "epost":
             res = pdf.lagEpost()
         elif blankettType.lower() == "post":
@@ -178,17 +181,17 @@ class FakturaBibliotek:
         elif blankettType.lower() == "kvittering":
             res = pdf.lagKvittering()
         else:
-            raise FakturaFeil("Ugyldig blankett-type: %s" % blankettType)
+            raise FakturaFeil(f"Ugyldig blankett-type: {blankettType}")
         if not res:
-            raise FakturaFeil("Kunne ikke lage PDF! ('%s')" % spdf.filnavn)
+            raise FakturaFeil(f"Kunne ikke lage PDF! ('{pdf.filnavn}')")
 
         return pdf
 
-    def skrivUt(self, filnavn: str):
+    def skrivUt(self, filnavn: Path):
         return fil.vis(filnavn)
 
-    def sendEpost(self, ordre, pdf, tekst=None, transport='auto'):
-        if type(transport) == int:
+    def sendEpost(self, ordre: fakturaOrdre, pdf, tekst: Optional[str] = None, transport: Union[str, int] = 'auto'):
+        if isinstance(transport, int):
             transport = epost.TRANSPORTMETODER[transport]
         if transport == 'auto':
             transport = self.testEpost()
@@ -209,12 +212,12 @@ class FakturaBibliotek:
         m.faktura(ordre, pdf, tekst, testmelding=self.produksjonsversjon == False)
         return m.send()
 
-    def testEpost(self, transport='auto'):
-        if type(transport) == int:
+    def testEpost(self, transport: Union[str, int] = 'auto'):
+        if isinstance(transport, int):
             transport = epost.TRANSPORTMETODER[transport]
         logging.debug('skal teste transport: %s', transport)
         # finn riktig transport (gmail/smtp/sendmail)
-        if not transport in epost.TRANSPORTMETODER:  #ugyldig transport oppgitt
+        if transport not in epost.TRANSPORTMETODER:  #ugyldig transport oppgitt
             transport = 'auto'
         if transport == 'auto':
             feil = []
@@ -234,21 +237,23 @@ class FakturaBibliotek:
         m = getattr(epost, transport)()  # laster riktig transport
         assert m == epost.Epost
         oppsett = self.epostoppsett
+        assert oppsett is not None
         if transport == 'smtp':
             m.tls(bool(oppsett.smtptls))
             m.settServer(oppsett.smtpserver, oppsett.smtpport)
-            if oppsett.smtpbruker: m.auth(oppsett.smtpbruker, oppsett.smtppassord)
+            if oppsett.smtpbruker:
+                m.auth(oppsett.smtpbruker, oppsett.smtppassord)
         elif transport == 'sendmail':
             m.settSti(oppsett.sendmailsti)
         try:
             t = m.test()
         except Exception as inst:
-            logging.debug("%s gikk %s", transport, inst.__str__())
+            logging.debug("%s gikk %s", transport, str(inst))
             ex = epost.SendeFeil()
             ex.transport = transport
             ex.transportmetoder = epost.TRANSPORTMETODER[:]
-            ex.message = inst.__str__()
-            raise ex
+            ex.message = str(inst)
+            raise ex from inst
         else:
             if t:
                 logging.debug("%s gikk %s", transport, t)
@@ -259,23 +264,14 @@ class FakturaBibliotek:
 
 def lagDatabase(database: Path, sqlfile: Optional[str] = None):
     "lager databasestruktur. 'database' er filnavn (unicode)"
-    try:
-        db = sqlite3.connect(database, isolation_level=None)
-        return byggDatabase(db, sqlfile)
-    except sqlite3.DatabaseError:
-        raise
-        # hmm, kanskje gammel database?
-        dbver = sjekkDatabaseVersjon(database)
-        if dbver != sqlite3.sqlite_version_info[0]:
-            e = "Databasen din (versjon %s) kan ikke leses av pysqlite, som leser versjon %s" % (dbver, sqlite3.sqlite_version_info[0])
-            print("FEIL!", e)
-            raise DBVersjonFeil(e)
+    db = sqlite3.connect(database, isolation_level=None)
+    return byggDatabase(db, sqlfile)
 
 
 def byggDatabase(db: sqlite3.Connection, sqlfile: Optional[str] = None):
     "lager databasestruktur. 'db' er et sqlite3.Connection-objekt"
     if sqlfile is not None:
-        sql = open(sqlfile).read()
+        sql = open(sqlfile, encoding="utf8").read()
     else:
         sql = str(lesRessurs('sql:faktura.sql'))
     db.executescript(sql)
@@ -301,8 +297,9 @@ def finnDatabasenavn(databasenavn: str = DATABASENAVN) -> Path:
         db = Path(db_navn)
         if not PRODUKSJONSVERSJON or (db.is_file()):
             return db
-    if os.getenv('FAKTURADIR') is not None:
-        fdir = Path(os.getenv('FAKTURADIR'))
+    env_fakturadir = os.getenv('FAKTURADIR')
+    if env_fakturadir is not None:
+        fdir = Path(env_fakturadir)
     else:
         #sjekk for utviklermodus
         if not PRODUKSJONSVERSJON:
@@ -321,18 +318,22 @@ def kobleTilDatabase(dbnavn: Optional[Path] = None):
     logging.debug('skal koble til %s (%s/%s)', dbnavn, repr(dbnavn), type(dbnavn))
 
     try:
-        db = sqlite3.connect(database=dbnavn.absolute(), isolation_level=None)  # isolation_level = None gir autocommit-modus
+        db = sqlite3.connect(
+            database=dbnavn.absolute(),
+            isolation_level=None,
+        )  # isolation_level = None gir autocommit-modus
         logging.debug("Koblet til databasen %s", dbnavn.absolute())
         return db
-    except sqlite3.DatabaseError:
+    except sqlite3.DatabaseError as ex:
         logging.debug("Vi bruker sqlite %s", sqlite3.apilevel)
         dbver = sjekkDatabaseVersjon(dbnavn)
         logging.debug("Databasen er sqlite %s", dbver)
         if sqlite3.apilevel != dbver:
-            raise DBVersjonFeil("Databasen er versjon %s, men biblioteket er versjon %s" % (dbver, sqlite3.apilevel))
+            feilmelding = f"Databasen er versjon {dbver}, men biblioteket er versjon {sqlite3.apilevel}"
+            raise DBVersjonFeil(feilmelding) from ex
 
 
-def sjekkDatabaseVersjon(dbnavn: str):
+def sjekkDatabaseVersjon(dbnavn: Path):
     """ skiller melllom sqlite 2 og 3. Forventer dbnavn i unicode"""
     #http://marc.10east.com/?l=sqlite-users&m=109382344409938&w=2
     #> It is safe to read the first N bytes in a db file ... ?
@@ -342,14 +343,18 @@ def sjekkDatabaseVersjon(dbnavn: str):
     #array that you can search for "SQLite 2" or "SQLite format 3".
 
     try:
-        f = open(dbnavn.encode(sys.getfilesystemencoding()))
+        f = open(dbnavn, 'r', encoding='utf8')
         magic = f.read(33)
     except IOError:
-        return False
+        return None
+
     f.close()
-    if 'SQLite 2' in magic: return 2
-    elif 'SQLite format 3' in magic: return 3
-    else: return False
+
+    if 'SQLite 2' in magic:
+        return '2'
+    if 'SQLite format 3' in magic:
+        return '3'
+    return None
 
 
 def sikkerhetskopierFil(filnavn: Path):
@@ -358,7 +363,7 @@ def sikkerhetskopierFil(filnavn: Path):
     Forventer filnavn i unicode"""
     logging.debug('skal sikkerhetskopiere %s (altså %s)', repr(filnavn), repr(filnavn))
     assert filnavn.is_file()
-    bkpfil = "%s-%s~" % (filnavn, int(time()))
+    bkpfil = f"{filnavn}-{int(time())}~"
     return shutil.copyfile(filnavn, bkpfil)
 
 
@@ -367,13 +372,12 @@ def lesRessurs(ressurs: str):
 
     'ressurs' er på formatet ':/sti/navn', for eksempel ':/sql/faktura.sql'
     """
-    from PyQt6 import QtCore
     QtCore.QDir.addSearchPath('sql', '.')
     QtCore.QDir.addSearchPath('pix', './finfaktura/ui/')
     QtCore.QDir.addSearchPath('data', '.')
     f = QtCore.QFile(ressurs)
     if not f.open(QtCore.QIODevice.OpenModeFlag.ReadOnly | QtCore.QIODevice.OpenModeFlag.Text):
-        raise IOError("Kunne ikke åpne ressursen '%s'" % ressurs)
+        raise IOError(f"Kunne ikke åpne ressursen '{ressurs}'")
     t = QtCore.QTextStream(f)
 
     s = t.readAll()
@@ -382,12 +386,18 @@ def lesRessurs(ressurs: str):
 
 
 def typeofqt(obj: Any):
-    from PyQt6 import QtWidgets
-    if isinstance(obj, QtWidgets.QSpinBox): return 'QSpinBox'
-    elif isinstance(obj, QtWidgets.QDoubleSpinBox): return 'QDoubleSpinBox'
-    elif isinstance(obj, QtWidgets.QLineEdit): return 'QLineEdit'
-    elif isinstance(obj, QtWidgets.QTextEdit): return 'QTextEdit'
-    elif isinstance(obj, QtWidgets.QPlainTextEdit): return 'QPlainTextEdit'
-    elif isinstance(obj, QtWidgets.QHtmlTextEdit): return 'QHtmlTextEdit'
-    elif isinstance(obj, QtWidgets.QComboBox): return 'QComboBox'
+    if isinstance(obj, QtWidgets.QSpinBox):
+        return 'QSpinBox'
+    if isinstance(obj, QtWidgets.QDoubleSpinBox):
+        return 'QDoubleSpinBox'
+    if isinstance(obj, QtWidgets.QLineEdit):
+        return 'QLineEdit'
+    if isinstance(obj, QtWidgets.QTextEdit):
+        return 'QTextEdit'
+    if isinstance(obj, QtWidgets.QPlainTextEdit):
+        return 'QPlainTextEdit'
+    if isinstance(obj, QtWidgets.QHtmlTextEdit):
+        return 'QHtmlTextEdit'
+    if isinstance(obj, QtWidgets.QComboBox):
+        return 'QComboBox'
     return "QWidget"

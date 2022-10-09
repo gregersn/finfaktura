@@ -12,21 +12,23 @@
 
 import logging
 from PyQt6 import QtWidgets
+
+from finfaktura.fakturabibliotek import FakturaBibliotek
 from .ui import epost_ui
 from . import epost
 
 
-class epostOppsett(epost_ui.Ui_epostOppsett):
+class EpostOppsett(epost_ui.Ui_epostOppsett):
 
-    def __init__(self, faktura):
+    def __init__(self, faktura: FakturaBibliotek):
         self.faktura = faktura
         self.gui = QtWidgets.QDialog()
         self.setupUi(self.gui)
         self._epostlosninger = [self.epostLosningAuto, self.epostLosningSmtp, self.epostLosningSendmail]
-        self.epostLosningAuto.toggled.connect(lambda b: self.roterAktivSeksjon('auto'))
-        self.epostLosningSmtp.toggled.connect(lambda b: self.roterAktivSeksjon('smtp'))
-        self.epostLosningSendmail.toggled.connect(lambda b: self.roterAktivSeksjon('sendmail'))
-        self.epostLosningTest.clicked.connect(self.testEpost)
+        self.epostLosningAuto.toggled.connect(lambda: self.roter_aktiv_seksjon('auto'))
+        self.epostLosningSmtp.toggled.connect(lambda: self.roter_aktiv_seksjon('smtp'))
+        self.epostLosningSendmail.toggled.connect(lambda: self.roter_aktiv_seksjon('sendmail'))
+        self.epostLosningTest.clicked.connect(self.test_epost)
 
         self.vis()
         self.gui.show()
@@ -35,14 +37,15 @@ class epostOppsett(epost_ui.Ui_epostOppsett):
         res = self.gui.exec()
         if res == QtWidgets.QDialog.DialogCode.Accepted:
             logging.debug('oppdaterer')
-            self.oppdaterEpost()
+            self.oppdater_epost()
         return res
 
     def vis(self):
+        assert self.faktura.epostoppsett is not None
         if self.faktura.epostoppsett.bcc:
             self.sendKopi.setChecked(True)
             self.kopiAdresse.setText(self.faktura.epostoppsett.bcc)
-        self.roterAktivSeksjon(epost.TRANSPORTMETODER[self.faktura.epostoppsett.transport])
+        self.roter_aktiv_seksjon(epost.TRANSPORTMETODER[self.faktura.epostoppsett.transport])
         self._epostlosninger[self.faktura.epostoppsett.transport].setChecked(True)
         if self.faktura.epostoppsett.smtpserver:
             self.smtpServer.setText(self.faktura.epostoppsett.smtpserver)
@@ -61,10 +64,11 @@ class epostOppsett(epost_ui.Ui_epostOppsett):
         else:
             self.sendmailSti.setText('~')
 
-    def oppdaterEpost(self):
+    def oppdater_epost(self):
         logging.debug("lagrer epost")
-        logging.debug('eposttransport: %s', self.finnAktivTransport())
-        self.faktura.epostoppsett.transport = self.finnAktivTransport()
+        logging.debug('eposttransport: %s', self.finn_aktiv_transport())
+        assert self.faktura.epostoppsett is not None
+        self.faktura.epostoppsett.transport = self.finn_aktiv_transport()
         if not self.sendKopi.isChecked():
             self.kopiAdresse.setText('')
         self.faktura.epostoppsett.bcc = str(self.kopiAdresse.text())
@@ -80,8 +84,8 @@ class epostOppsett(epost_ui.Ui_epostOppsett):
             self.faktura.epostoppsett.smtppassord = ''
         self.faktura.epostoppsett.sendmailsti = str(self.sendmailSti.text())
 
-    def roterAktivSeksjon(self, seksjon):
-        logging.debug("roterer til %s er synlig" % seksjon)
+    def roter_aktiv_seksjon(self, seksjon: str):
+        logging.debug("roterer til %s er synlig", seksjon)
         bokser = {'smtp': self.boxSMTP, 'sendmail': self.boxSendmail}
         if seksjon == 'auto':  #vis alt
             list(map(lambda x: x.setEnabled(True), list(bokser.values())))
@@ -89,37 +93,47 @@ class epostOppsett(epost_ui.Ui_epostOppsett):
         for merke, box in bokser.items():
             box.setEnabled(merke == seksjon)
 
-    def testEpost(self):
-        self.oppdaterEpost()  # må lagre for å bruke de inntastede verdiene
+    def test_epost(self):
+        self.oppdater_epost()  # må lagre for å bruke de inntastede verdiene
         try:
-            transport = self.faktura.testEpost(epost.TRANSPORTMETODER[self.finnAktivTransport()])
+            transport = self.faktura.testEpost(epost.TRANSPORTMETODER[self.finn_aktiv_transport()])
         except Exception as ex:
             logging.debug('Fikk feil: %s', ex)
-            s = 'Epostoppsettet fungerer ikke. Oppgitt feilmelding:\n %s \n\nKontroller at de oppgitte innstillingene \ner korrekte' % ex.message
+            s = 'Epostoppsettet fungerer ikke. Oppgitt feilmelding:\n {ex.message} \n\nKontroller at de oppgitte innstillingene \ner korrekte'
             trans = getattr(ex, 'transport')
             if trans != 'auto':
                 ex.transportmetoder.remove(trans)  # fjerner feilet metode fra tilgjengelig-liste
-                s += ', eller prøv en annen metode.\nTilgjengelige metoder:\n%s' % ', '.join(ex.transportmetoder)
+                s += f', eller prøv en annen metode.\nTilgjengelige metoder:\n{", ".join(ex.transportmetoder)}'
             self.alert(s)
         else:
-            self.obs("Epostoppsettet fungerer. Bruker %s" % transport)
-            try:
-                idx = epost.TRANSPORTMETODER.index(transport)
-                self._epostlosninger[idx].setChecked(True)
-                #self.roterAktivSeksjon(transport)
-            except:
-                raise
-            self.oppdaterEpost()  # må lagre for å bruke den aktive løsningen
+            self.obs(f"Epostoppsettet fungerer. Bruker {transport}")
+            idx = epost.TRANSPORTMETODER.index(transport)
+            self._epostlosninger[idx].setChecked(True)
+            #self.roterAktivSeksjon(transport)
+            self.oppdater_epost()  # må lagre for å bruke den aktive løsningen
 
-    def finnAktivTransport(self):
+    def finn_aktiv_transport(self):
         for i, w in enumerate(self._epostlosninger):
-            if w.isChecked(): return i
+            if w.isChecked():
+                return i
 
-    def alert(self, msg):
-        QtWidgets.QMessageBox.critical(self.gui, "Feil!", msg, QtWidgets.QMessageBox.Ok)
+        return None
 
-    def obs(self, msg):
-        QtWidgets.QMessageBox.information(self.gui, "Obs!", msg, QtWidgets.QMessageBox.Ok)
+    def alert(self, msg: str):
+        QtWidgets.QMessageBox.critical(
+            self.gui,
+            "Feil!",
+            msg,
+            QtWidgets.QMessageBox.StandardButton.Ok,
+        )
+
+    def obs(self, msg: str):
+        QtWidgets.QMessageBox.information(
+            self.gui,
+            "Obs!",
+            msg,
+            QtWidgets.QMessageBox.StandardButton.Ok,
+        )
 
     #def epostVisAuth(self, vis):
     ##self.epostSmtpBrukernavn.setEnabled(vis)

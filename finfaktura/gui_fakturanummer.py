@@ -21,22 +21,26 @@ import sqlite3
 
 from stat import ST_MTIME
 
-from PyQt6 import QtGui, uic
+from PyQt6 import QtWidgets
+from PyQt6.uic import load_ui
 #from ui import fakturanummer_ui
 
 
-class nummersetter:
+class Nummersetter:
 
-    def lesDBInfo(self, databasenavn):
-        if not os.path.exists(databasenavn): return False
+    def les_database_info(self, databasenavn: str):
+        if not os.path.exists(databasenavn):
+            return False
         db = sqlite3.connect(databasenavn)
 
         mtime = os.stat(databasenavn)[ST_MTIME]
 
         cursor = db.cursor()
+        firmanavn = None
+        fakturaer = None
         try:
             cursor.execute('SELECT firmanavn FROM Firma')
-            fnavn = cursor.fetchone()[0]
+            firmanavn = cursor.fetchone()[0]
             cursor.execute('SELECT * FROM Ordrehode')
             fakturaer = len(cursor.fetchall())
             status = fakturaer == 0
@@ -44,63 +48,67 @@ class nummersetter:
             status = False
             firmanavn = 'Feil'
 
-        ret = {'filnavn': databasenavn, 'firmanavn': fnavn, 'fakturaer': fakturaer, 'endret': mtime, 'status': status}
+        ret = {
+            'filnavn': databasenavn,
+            'firmanavn': firmanavn,
+            'fakturaer': fakturaer,
+            'endret': mtime,
+            'status': status,
+        }
         return ret
 
-    def settFakturanummer(self, databasenavn, fakturanummer):
+    def sett_fakturanummer(self, databasenavn: str, fakturanummer: int):
         logging.debug("Skal sette fakturanr %s på db %s", fakturanummer, databasenavn)
-        if not os.path.exists(databasenavn): return False
+        if not os.path.exists(databasenavn):
+            return False
         db = sqlite3.connect(databasenavn)
         cursor = db.cursor()
-        try:
-            cursor.execute('SELECT * FROM Ordrehode')
-            if len(cursor.fetchall()) > 0:
-                raise Exception('Det er allerede laget fakturaer i denne databasen. Kan ikke sette fakturanummer.')
-            cursor.execute('INSERT INTO Kunde (ID, navn, slettet) VALUES (1, "Tom kunde", 1)')
-            cursor.execute(
-                'INSERT INTO Ordrehode (ID, tekst, kansellert, kundeID, ordredato, forfall) VALUES (?, "Tom faktura", 1, 1, 1, 1)',
-                (fakturanummer, ))
-            db.commit()
-            db.close()
-            return True
-        except sqlite3.Error:
-            raise
+        cursor.execute('SELECT * FROM Ordrehode')
+        if len(cursor.fetchall()) > 0:
+            raise Exception('Det er allerede laget fakturaer i denne databasen. Kan ikke sette fakturanummer.')
+        cursor.execute('INSERT INTO Kunde (ID, navn, slettet) VALUES (1, "Tom kunde", 1)')
+        cursor.execute('INSERT INTO Ordrehode (ID, tekst, kansellert, kundeID, ordredato, forfall) VALUES (?, "Tom faktura", 1, 1, 1, 1)',
+                       (fakturanummer, ))
+        db.commit()
+        db.close()
+        return True
 
 
 class NummersetterGUI:
 
     def __init__(self):
-        self.help = nummersetter()
-        p = os.path.join(os.path.dirname(__file__), 'ui/fakturanummer.ui')
-        self.gui = uic.loadUi(p)
+        self.help = Nummersetter()
+        filepath = os.path.join(os.path.dirname(__file__), 'ui/fakturanummer.ui')
+        self.gui: QtWidgets.QWidget = load_ui.loadUi(filepath)
+        assert self.gui is not None
         # self.gui.connect(self.gui.databasenavn, QtCore.SIGNAL('activated(QString)'), self.slotDatabaseValgt)
         # self.gui.connect(self.gui.settFakturanummer, QtCore.SIGNAL('clicked()'), self.slotSettFakturanummer)
         self.gui.show()
-        self.gui.databasenavn.addItems(list(self.listDatabaser()))
-        self.visDatabaseStatus()
+        self.gui.databasenavn.addItems(list(self.list_databaser()))
+        self.vis_databasestatus()
 
-    def listDatabaser(self):
+    def list_databaser(self):
         if os.path.exists(os.getenv('FAKTURADB', '')):
             yield os.getenv('FAKTURADB')
         for d in (os.path.join(os.getenv('HOME', ''), '.finfaktura'), os.path.join(os.getenv('HOME', ''),
                                                                                    'finfaktura'), os.getenv('FAKTURADIR'), '.'):
-            if not d: continue
-            if not os.path.exists(d): continue
+            if not d:
+                continue
+            if not os.path.exists(d):
+                continue
             for f in glob.glob(os.path.join(d, '*.db')):
                 yield f
         yield '...'
 
-    def slotDatabaseValgt(self, s):
-        logging.debug('valgte database: %s', s)
-        filename = str(s, sys.getfilesystemencoding())
+    def slotDatabaseValgt(self, filename: str):
+        logging.debug('valgte database: %s', filename)
         if filename == '...':
-            f = self.velgDatabase()
-            self.gui.databasenavn.insertItem(-1, f)
-            filename = str(f, sys.getfilesystemencoding())
-        self.visDatabaseStatus()
+            filename = self.velg_database()
+            self.gui.databasenavn.insertItem(-1, filename)
+        self.vis_databasestatus()
 
-    def visDatabaseStatus(self):
-        status = self.help.lesDBInfo(str(self.gui.databasenavn.currentText()))
+    def vis_databasestatus(self):
+        status = self.help.les_database_info(str(self.gui.databasenavn.currentText()))
         logging.debug('status:%s', status)
         if not status:
             return False
@@ -111,34 +119,44 @@ class NummersetterGUI:
         self.gui.detaljerStatus.setText({True: '<b>Klar til å endres</b>', False: '<b>Kan ikke endres</b>'}[status['status']])
         self.gui.handlingsBoks.setEnabled(status['status'])
 
-    def velgDatabase(self):
-        f = QtGui.QFileDialog.getOpenFileName(self.gui, 'Velg database', str(os.getenv('HOME', '.'), sys.getfilesystemencoding()),
-                                              "Databasefil (*.db)")
-        logging.debug('valgte fil: %s', f)
-        return f
+    def velg_database(self):
+        selected_file = QtWidgets.QFileDialog.getOpenFileName(
+            self.gui,
+            'Velg database',
+            os.getenv('HOME', '.'),
+            "Databasefil (*.db)",
+        )
+        logging.debug('valgte fil: %s', selected_file)
+        return selected_file
 
     def slotSettFakturanummer(self):
-        fnr = self.gui.fakturanummer.value()
+        fnr: int = self.gui.fakturanummer.value()
         logging.debug('Frste fakturanummer skal være %s', repr(fnr))
         if fnr < 1:
-            QtGui.QMessageBox.critical(self.gui, "Feil fakturanummer",
-                                       "Du må sette første fakturanummer (nummeret du ønsker at din første faktura skal få)")
+            QtWidgets.QMessageBox.critical(self.gui, "Feil fakturanummer",
+                                           "Du må sette første fakturanummer (nummeret du ønsker at din første faktura skal få)")
             return False
-        click = QtGui.QMessageBox.warning(
-            self.gui, "Sette fakturanummer?",
-            "Advarsel! \nDu er nå i ferd med å endre fakturadatabasen, slik at neste faktura får løpenummer %s. Dette kan ikke endres senere! \n\nEr du sikker? (Hvis du er i tvil, velg 'Nei/No')"
-            % fnr, QtGui.QMessageBox.Yes | QtGui.QMessageBox.No, QtGui.QMessageBox.No)
+        click = QtWidgets.QMessageBox.warning(
+            self.gui,
+            "Sette fakturanummer?",
+            f"Advarsel! \nDu er nå i ferd med å endre fakturadatabasen, slik at neste faktura får løpenummer {fnr}. Dette kan ikke endres senere! \n\nEr du sikker? (Hvis du er i tvil, velg 'Nei/No')",
+            QtWidgets.QMessageBox.StandardButton.Yes | QtWidgets.QMessageBox.StandardButton.No,
+            QtWidgets.QMessageBox.StandardButton.No,
+        )
         logging.debug('vil gjøre %s', click)
-        if click == QtGui.QMessageBox.Yes:
+        if click == QtWidgets.QMessageBox.StandardButton.Yes:
             logging.debug('ja')
-            if self.help.settFakturanummer(str(self.gui.databasenavn.currentText()), fnr - 1):
-                QtGui.QMessageBox.information(self.gui, "Fakturanummer endret",
-                                              "Endret fakturanummer. Nå får neste faktura nummer %s" % fnr)
+            if self.help.sett_fakturanummer(str(self.gui.databasenavn.currentText()), fnr - 1):
+                QtWidgets.QMessageBox.information(
+                    self.gui,
+                    "Fakturanummer endret",
+                    f"Endret fakturanummer. Nå får neste faktura nummer {fnr}",
+                )
 
 
 if __name__ == '__main__':
     if '-d' in sys.argv:
         logging.basicConfig(level=logging.DEBUG)
-    a = QtGui.QApplication(sys.argv)
+    a = QtWidgets.QApplication(sys.argv)
     p = NummersetterGUI()
     a.exec()

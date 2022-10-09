@@ -19,7 +19,7 @@ def forbered_ressurser():
     ui_files = glob.glob(os.path.join('finfaktura', 'ui', '*.ui'))
 
     for fil in ui_files:
-        ret = subprocess.call(['pyuic6', '-x', '-o', os.path.splitext(fil)[0] + '_ui.py', fil])
+        ret = subprocess.call(['pyuic6', '-o', os.path.splitext(fil)[0] + '_ui.py', fil])
         print(f"{fil}: {sjekk_status(ret)}")
 
 

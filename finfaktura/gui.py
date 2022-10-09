@@ -684,13 +684,13 @@ class FinFaktura(QtWidgets.QMainWindow):  #Ui_MainWindow): ## leser gui fra fakt
             return
         historikk.sendtTilInkasso(ordre, True, 'brukerklikk')
 
-    def visEpostfaktura(self, ordre, pdfFilnavn):
+    def visEpostfaktura(self, ordre: finfaktura.fakturakomponenter.fakturaOrdre, pdfFilnavn: Path):
         epostboks = gui_sendepost.sendEpost(self, ordre)
         res, tekst = epostboks.exec()
         if res == QtWidgets.QDialog.DialogCode.Accepted:
             return self.sendEpostfaktura(ordre, tekst, pdfFilnavn)
 
-    def sendEpostfaktura(self, ordre, tekst, filnavn):
+    def sendEpostfaktura(self, ordre: finfaktura.fakturakomponenter.fakturaOrdre, tekst: str, filnavn: Path):
         try:
             logging.debug('sender epostfaktura: ordre # %i, til: %s', ordre._id, ordre.kunde.epost)
             logging.debug('bruker transport %s', self.faktura.epostoppsett.transport)
@@ -1072,7 +1072,7 @@ class FinFaktura(QtWidgets.QMainWindow):  #Ui_MainWindow): ## leser gui fra fakt
         self.gui.okonomiAvgrensningerDatoAr.setValue(localtime()[0])
 
     def hentAktuelleOrdrer(self):
-        ordrehenter = fakturaOkonomi.ordreHenter(self.db)
+        ordrehenter = fakturaOkonomi.OrdreHenter(self.db)
         begrensninger = {
             'dato': (None, None),
             'kunde': None,
@@ -1222,7 +1222,7 @@ class FinFaktura(QtWidgets.QMainWindow):  #Ui_MainWindow): ## leser gui fra fakt
         res = dialog.exec()
 
     def visEpostOppsett(self):
-        dialog = gui_epost.epostOppsett(self.faktura)
+        dialog = gui_epost.EpostOppsett(self.faktura)
         res = dialog.exec()
 
     def visProgramOppsett(self):
@@ -1245,7 +1245,7 @@ class FinFaktura(QtWidgets.QMainWindow):  #Ui_MainWindow): ## leser gui fra fakt
             tittel = 'Programmet er fritt tilgjengelig under GPL, versjon 2:'
             r = ':/data/LICENSE'
         try:
-            vindu = tekstVindu(tittel, lesRessurs(r))
+            vindu = TekstVindu(tittel, lesRessurs(r))
             res = vindu.exec()
             return res
         except IOError as xxx_todo_changeme5:
@@ -1268,9 +1268,9 @@ class FinFaktura(QtWidgets.QMainWindow):  #Ui_MainWindow): ## leser gui fra fakt
         return svar == QtWidgets.QMessageBox.StandardButton.Yes
 
 
-class tekstVindu:
+class TekstVindu:
 
-    def __init__(self, tittel, tekst):
+    def __init__(self, tittel: str, tekst: str):
         self.gui = QtWidgets.QDialog()
         self.gui.setObjectName('tekstvindu')
         self.gui.resize(600, 600)
@@ -1285,7 +1285,7 @@ class tekstVindu:
         self.tekst.setPlainText(tekst)
         self.tekst.setReadOnly(True)
         self.knapper = QtWidgets.QDialogButtonBox(self.gui)
-        self.knapper.setStandardButtons(QtWidgets.QDialogButtonBox.Ok)
+        self.knapper.setStandardButtons(QtWidgets.QDialogButtonBox.StandardButton.Ok)
         self.vbox.addWidget(self.tittel)
         self.vbox.addWidget(self.tekst)
         self.vbox.addWidget(self.knapper)
