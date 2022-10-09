@@ -32,10 +32,10 @@ import finfaktura.fakturakomponenter
 import finfaktura.fil
 from finfaktura.fakturafeil import *
 
-from PyQt5 import QtCore, QtGui, uic, QtWidgets
+from PyQt6 import QtCore, QtGui, uic, QtWidgets
+
 try:
     from finfaktura.ui.faktura_ui import Ui_FinFaktura
-    from finfaktura.ui import faktura_rc
     from . import gui_sendepost, gui_epost, gui_finfaktura_oppsett, gui_firma, gui_fakturanummer
 except ImportError as import_error:
     print("Could not import that stuff")
@@ -121,8 +121,8 @@ class FinFaktura(QtWidgets.QMainWindow):  #Ui_MainWindow): ## leser gui fra fakt
         self.gui.okonomiFakturaerSkrivut.clicked.connect(self.okonomiSkrivUtFakturaer)
 
         topplinje = self.gui.fakturaVareliste.horizontalHeader()
-        topplinje.setSectionResizeMode(0, QtWidgets.QHeaderView.Stretch)
-        topplinje.setSectionResizeMode(3, QtWidgets.QHeaderView.Fixed)
+        topplinje.setSectionResizeMode(0, QtWidgets.QHeaderView.ResizeMode.Stretch)
+        topplinje.setSectionResizeMode(3, QtWidgets.QHeaderView.ResizeMode.Fixed)
         topplinje.resizeSection(1, 100)
         topplinje.resizeSection(2, 100)
         topplinje.resizeSection(3, 85)
@@ -133,8 +133,8 @@ class FinFaktura(QtWidgets.QMainWindow):  #Ui_MainWindow): ## leser gui fra fakt
 
         self.databaseTilkobler()
 
-        self.fakturaForfaltIkon = QtGui.QIcon(':/pix/important.svg')
-        self.slettetIkon = QtGui.QIcon(':/pix/stop.svg')
+        self.fakturaForfaltIkon = QtGui.QIcon('finfaktura/ui/emblem-important.svg')
+        self.slettetIkon = QtGui.QIcon('finfaktura/ui/process-stop.svg')
 
         try:
             assert self.db is not None
@@ -419,7 +419,7 @@ class FinFaktura(QtWidgets.QMainWindow):  #Ui_MainWindow): ## leser gui fra fakt
         # Antall.triggered.connect(lambda x: self.fakturaVarelisteSynk(rad, 1))
 
         prisGUI = QtWidgets.QDoubleSpinBox(self.gui.fakturaVareliste)
-        prisGUI.setButtonSymbols(QtWidgets.QDoubleSpinBox.UpDownArrows)
+        prisGUI.setButtonSymbols(QtWidgets.QDoubleSpinBox.ButtonSymbols.UpDownArrows)
         prisGUI.setMaximum(999999999.0)
         prisGUI.setDecimals(2)
         prisGUI.setSuffix(' kr')
@@ -428,7 +428,7 @@ class FinFaktura(QtWidgets.QMainWindow):  #Ui_MainWindow): ## leser gui fra fakt
         # Pris.triggered.connect(lambda x: self.fakturaVarelisteSynk(rad, 2))
 
         mvaGUI = QtWidgets.QDoubleSpinBox(self.gui.fakturaVareliste)
-        mvaGUI.setButtonSymbols(QtWidgets.QDoubleSpinBox.UpDownArrows)
+        mvaGUI.setButtonSymbols(QtWidgets.QDoubleSpinBox.ButtonSymbols.UpDownArrows)
         mvaGUI.setValue(25)
         mvaGUI.setSuffix(' %')
         mvaGUI.show()
@@ -550,7 +550,7 @@ class FinFaktura(QtWidgets.QMainWindow):  #Ui_MainWindow): ## leser gui fra fakt
         ordre.firma = self.firma
         fakturanavn = ordre.lagFilnavn(Path(self.faktura.oppsett.fakturakatalog), fakturatype=Type)
         try:
-            pdf = f60.f60(fakturanavn)
+            pdf = f60.F60(fakturanavn)
             pdf.settFirmainfo(self.firma._egenskaper)
             pdf.settKundeinfo(ordre.kunde._id, ordre.kunde.postadresse())
             pdf.settFakturainfo(ordre._id, ordre.ordredato, ordre.forfall, ordre.tekst)
@@ -689,7 +689,7 @@ class FinFaktura(QtWidgets.QMainWindow):  #Ui_MainWindow): ## leser gui fra fakt
     def visEpostfaktura(self, ordre, pdfFilnavn):
         epostboks = gui_sendepost.sendEpost(self, ordre)
         res, tekst = epostboks.exec()
-        if res == QtWidgets.QDialog.Accepted:
+        if res == QtWidgets.QDialog.DialogCode.Accepted:
             return self.sendEpostfaktura(ordre, tekst, pdfFilnavn)
 
     def sendEpostfaktura(self, ordre, tekst, filnavn):
@@ -1258,10 +1258,10 @@ class FinFaktura(QtWidgets.QMainWindow):  #Ui_MainWindow): ## leser gui fra fakt
 ############## GENERELLE METODER ###################
 
     def alert(self, msg: str):
-        QtWidgets.QMessageBox.critical(self, "Feil!", msg, QtWidgets.QMessageBox.Ok)
+        QtWidgets.QMessageBox.critical(self, "Feil!", msg, QtWidgets.QMessageBox.StandardButton.Ok)
 
     def obs(self, msg: str):
-        QtWidgets.QMessageBox.information(self, "Obs!", msg, QtWidgets.QMessageBox.Ok)
+        QtWidgets.QMessageBox.information(self, "Obs!", msg, QtWidgets.QMessageBox.StandardButton.Ok)
 
     def JaNei(self, s: str):
         svar = QtWidgets.QMessageBox.question(self, "Hm?", s,
@@ -1303,14 +1303,10 @@ class tekstVindu:
 def start():
     app = QtWidgets.QApplication(sys.argv)
 
-    qtTranslator = QtCore.QTranslator()
+    translator = QtCore.QTranslator()
 
-    logging.info("Loading translations %s" % ("finfaktura_" + QtCore.QLocale.system().name()))
-    myappTranslator = QtCore.QTranslator()
-    if not myappTranslator.load("finfaktura_" + QtCore.QLocale.system().name(), ":/translations"):
-        logging.warn("Could not load application translations from %s/translations/%s.qm" %
-                     (app.applicationDirPath(), "finfaktura_" + QtCore.QLocale.system().name()))
-    app.installTranslator(myappTranslator)
+    if (translator.load(QtCore.QLocale.system(), "finfaktura", "_", "./translations")):
+        app.installTranslator(translator)
 
     ff = FinFaktura()
     app.lastWindowClosed.connect(ff.avslutt)

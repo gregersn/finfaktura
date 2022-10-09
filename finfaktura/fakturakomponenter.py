@@ -9,19 +9,22 @@
 ###########################################################################
 
 from pathlib import Path
-import sys, re, types, time, os.path
+import sys, time, os.path, os
 import sqlite3
+from tempfile import mkstemp
 
 import logging, subprocess
-from typing import Any, Optional, Union
+from typing import Any, Dict, List, Optional
 
 from .fakturafeil import *
+from .f60 import F60
 
 PDFVIS = "/usr/bin/xdg-open"
 
 
 class FakturaKomponent:
-    _egenskaper = {}
+    _egenskaper: Dict[str, Any] = {}
+    _egenskaperAldriCache: List[str]
     _tabellnavn = ""
     _sqlExists = True
     _egenskaperBlob = []
@@ -66,7 +69,7 @@ class FakturaKomponent:
         except sqlite3.OperationalError:
             raise
         self._egenskaperListe = [z[0] for z in self.c.description]
-        r = {}
+        r: Dict[str, Any] = {}
         for z in self._egenskaperListe:
             r.update({z: None})
 
@@ -82,6 +85,7 @@ class FakturaKomponent:
         r = self.c.fetchone()
         if r is None: raise DBTomFeil('Det finnes ingen %s med ID %s' % (self._tabellnavn, self._id))
         for z in list(self._egenskaper.keys()):
+            verdi = None
             try:
                 verdi = r[self._egenskaperListe.index(z)]
             except TypeError:
@@ -108,9 +112,29 @@ class FakturaKomponent:
         except TypeError:
             return 0.0
 
+    @property
+    def id(self):
+        # TODO: Store 'kunde' in database if it has no id
+        return self._id
+
+    @property
+    def egenskaper(self):
+        return self._egenskaper
+
 
 class fakturaKunde(FakturaKomponent):
     _tabellnavn = "Kunde"
+
+    slettet: int
+    navn: str
+    kontakperson: str
+    adresse: str
+    postnummer: int
+    poststed: str
+    telefon: str
+    telefaks: str
+    status: str
+    epost: str
 
     def __init__(self, db: sqlite3.Connection, Id: Optional[int] = None):
         FakturaKomponent.__init__(self, db, Id)
@@ -145,9 +169,9 @@ class fakturaKunde(FakturaKomponent):
         ### XXX: TODO: quote riktig
         return '"%s" <%s>' % (self.navn, self.epost)
 
-    def settSlettet(self, erSlettet=True):
+    def settSlettet(self, erSlettet: bool = True):
         logging.debug("sletter kunde %s: %s", self._id, str(erSlettet))
-        if erSlettet: self.slettet = time.time()
+        if erSlettet: self.slettet = int(time.time())
         else: self.slettet = False
 
     def finnOrdrer(self):
@@ -160,6 +184,12 @@ class fakturaKunde(FakturaKomponent):
 
 class fakturaVare(FakturaKomponent):
     _tabellnavn = "Vare"
+    slettet: int
+    navn: str
+    detaljer: str
+    enhet: str
+    mva: int
+    pris: float
 
     def __str__(self):
         return str("%s: %.2f kr (%s %% mva)" % (self.navn, self.helstDesimal(self.pris), self.mva))
@@ -167,9 +197,9 @@ class fakturaVare(FakturaKomponent):
     def __repr__(self):
         return str("%s, vare # %s" % (self.navn, self._id))
 
-    def settSlettet(self, erSlettet=True):
+    def settSlettet(self, erSlettet: bool = True):
         logging.debug("sletter vare? %s", self._id)
-        if erSlettet: self.slettet = time.time()
+        if erSlettet: self.slettet = int(time.time())
         else: self.slettet = False
 
     def finnKjopere(self):
@@ -211,9 +241,22 @@ class fakturaVare(FakturaKomponent):
 
 class fakturaOrdre(FakturaKomponent):
     _tabellnavn = "Ordrehode"
-    linje = []
+    linje: List['fakturaOrdrelinje'] = []
+    kundeID: int
+    ordredato: int
+    forfall: int
+    tekst: str
+    kansellert: int = 0
+    ferdigstilt: int = 1
+    betalt: Optional[int] = 0
 
-    def __init__(self, db: sqlite3.Connection, kunde=None, Id=None, firma=None, dato=None, forfall=None):
+    def __init__(self,
+                 db: sqlite3.Connection,
+                 kunde: Optional[fakturaKunde] = None,
+                 Id: Optional[int] = None,
+                 firma: Optional['fakturaFirmainfo'] = None,
+                 dato: Optional[int] = None,
+                 forfall: Optional[int] = None):
         self.linje = []
         if dato is not None:
             self.ordredato = dato
@@ -227,6 +270,8 @@ class fakturaOrdre(FakturaKomponent):
             self.kunde = fakturaKunde(db, self.kundeID)
 
     def __str__(self):
+        assert self.kunde is not None
+
         s = "ordre # %04i, utformet til %s den %s" % (self._id, self.kunde.navn,
                                                       time.strftime("%Y-%m-%d %H:%M", time.localtime(self.ordredato)))
         if self.linje:
@@ -236,6 +281,8 @@ class fakturaOrdre(FakturaKomponent):
         return str(s)
 
     def nyId(self):
+        assert self.firma is not None
+        assert self.kunde is not None
         if not hasattr(self, 'ordredato'):
             self.ordredato = int(time.time())
         if self.ordreforfall is None:
@@ -249,9 +296,9 @@ class fakturaOrdre(FakturaKomponent):
         self.db.commit()
         return self.c.lastrowid
 
-    def leggTilVare(self, vare, kvantum, pris, mva):
-        vare = fakturaOrdrelinje(self.db, self, vare, kvantum, pris, mva)
-        self.linje.append(vare)
+    def leggTilVare(self, vare: fakturaVare, kvantum: int, pris: float, mva: int):
+        ordrelinje = fakturaOrdrelinje(self.db, self, vare, kvantum, pris, mva)
+        self.linje.append(ordrelinje)
 
     def finnVarer(self):
         self.linje = []
@@ -280,23 +327,24 @@ class fakturaOrdre(FakturaKomponent):
             mva += vare.kvantum * vare.enhetspris * vare.mva / 100
         return mva
 
-    def settKansellert(self, kansellert=True):
+    def settKansellert(self, kansellert: bool = True):
         logging.debug("Ordre #%s er kansellert: %s", self._id, str(kansellert))
         if kansellert:
-            self.kansellert = time.time()
+            self.kansellert = int(time.time())
         else:
             self.kansellert = False
 
-    def betal(self, dato=False):
+    def betal(self, dato: Optional[int] = None):
         logging.debug("Betaler faktura #%s", self._id)
-        if not dato:
-            dato = time.time()
+        if dato is None:
+            dato = int(time.time())
         self.betalt = dato
 
     def fjernBetalt(self):
         self.betalt = None
 
     def lagFilnavn(self, katalog: Path, fakturatype: str):
+        assert self.kunde is not None
         logging.debug('lagFilnavn: %s <- %s', katalog, fakturatype)
         if not katalog.expanduser().is_dir():
             logging.debug('lagFilnavn: %s er ikke en gyldig katalog', katalog)
@@ -318,10 +366,25 @@ class fakturaOrdre(FakturaKomponent):
 class fakturaOrdrelinje(FakturaKomponent):
     _tabellnavn = "Ordrelinje"
 
-    def __init__(self, db: sqlite3.Connection, ordre, vare=None, kvantum=None, enhetspris=None, mva=None, Id=None):
+    ordrehodeID: int
+    vareID: int
+    kvantum: int
+    mva: int
+    tekst: str
+    enhetspris: float
+
+    def __init__(self,
+                 db: sqlite3.Connection,
+                 ordre: fakturaOrdre,
+                 vare: Optional[fakturaVare] = None,
+                 kvantum: Optional[int] = None,
+                 enhetspris: Optional[float] = None,
+                 mva: Optional[int] = None,
+                 Id: Optional[int] = None):
         self.ordre = ordre
         self.vare = vare
         if Id is None:
+            assert self.vare is not None
             c = db.cursor()
             c.execute("INSERT INTO %s (ID, ordrehodeID, vareID, kvantum, enhetspris, mva) VALUES (NULL, ?, ?, ?, ?, ?)" % self._tabellnavn,
                       (self.ordre._id, self.vare._id, kvantum, enhetspris, mva))
@@ -332,9 +395,11 @@ class fakturaOrdrelinje(FakturaKomponent):
             self.vare = fakturaVare(db, self.vareID)
 
     def __str__(self):
+        assert self.vare is not None
         return "%s %s %s a kr %2.2f" % (self.kvantum, self.vare.enhet, self.vare.navn, self.enhetspris)
 
     def __repr__(self):
+        assert self.vare is not None
         return "%03d %s: %s %s a kr %2.2f (%s%% mva)" % (self.vare.ID, self.vare.navn, self.kvantum, self.vare.enhet, self.enhetspris,
                                                          self.mva)
 
@@ -342,6 +407,7 @@ class fakturaOrdrelinje(FakturaKomponent):
         pass
 
     def detaljertBeskrivelse(self):
+        assert self.vare is not None
         return str("%03d %s: %s %s a kr %2.2f (%s%% mva)" %
                    (self.vare.ID, self.vare.navn, self.kvantum, self.vare.enhet, self.enhetspris, self.mva))
 
@@ -356,12 +422,12 @@ class fakturaFirmainfo(FakturaKomponent):
     kontaktperson: str
     epost: str
     adresse: str
-    postnummer: Union[int, None]
+    postnummer: Optional[int]
     poststed: str
-    telefon: Union[str, None]
-    mobil: Union[str, None]
-    telefaks: Union[str, None]
-    kontonummer: Union[str, None]
+    telefon: Optional[str]
+    mobil: Optional[str]
+    telefaks: Optional[str]
+    kontonummer: Optional[str]
     vilkar: str
     mva: int
     forfall: int
@@ -419,6 +485,11 @@ class FakturaOppsett(FakturaKomponent):
     _tabellnavn = "Oppsett"
     _id = 1
 
+    databaseversion: float
+    fakturakatalog: str
+    skrivutpdf: str = ""
+    vispdf: str = ""
+
     def __init__(self, db: sqlite3.Connection, versjonsjekk: bool = True, apiversjon: Optional[float] = None):
 
         self.apiversjon = apiversjon
@@ -427,10 +498,10 @@ class FakturaOppsett(FakturaKomponent):
             fakturaFirmainfo, fakturaKunde, fakturaVare, fakturaOrdre, fakturaOrdrelinje, FakturaOppsett, fakturaSikkerhetskopi,
             fakturaEpost
         ]
-        mangler = []
+        mangler: List[Any] = []
         for obj in datastrukturer:
             try:
-                c.execute("SELECT * FROM %s LIMIT 1" % obj._tabellnavn)
+                c.execute(f"SELECT * FROM {obj._tabellnavn} LIMIT 1")
             except sqlite3.DatabaseError:
                 # db mangler eller er korrupt
                 # for å finne ut om det er en gammel versjon
@@ -449,7 +520,6 @@ class FakturaOppsett(FakturaKomponent):
             FakturaKomponent.__init__(self, db, Id=self._id)
         except DBTomFeil:
             # finner ikke oppsett. Ny, tom database
-            import os
             sql = "INSERT INTO %s (ID, databaseversjon, fakturakatalog) VALUES (?,?,?)" % self._tabellnavn
 
             c.execute(sql, (
@@ -476,7 +546,6 @@ class FakturaOppsett(FakturaKomponent):
         pass
 
     def migrerDatabase(self, nydb, sqlFil):
-        from .oppgradering import oppgradering
         db = lagDatabase(nydb, sqlFil)
         # hva nå?
 
@@ -491,8 +560,11 @@ class FakturaOppsett(FakturaKomponent):
 
 class fakturaSikkerhetskopi(FakturaKomponent):
     _tabellnavn = "Sikkerhetskopi"
+    ordreID: int
+    dato: int
+    data: Optional['pdfType']
 
-    def __init__(self, db: sqlite3.Connection, ordre=None, Id=None):
+    def __init__(self, db: sqlite3.Connection, ordre: Optional[fakturaOrdre] = None, Id: Optional[int] = None):
         self.dato = int(time.time())
         if ordre is not None:
             self.ordre = ordre
@@ -501,8 +573,7 @@ class fakturaSikkerhetskopi(FakturaKomponent):
             db.commit()
             Id = c.lastrowid
             FakturaKomponent.__init__(self, db, Id)
-            from .f60 import f60
-            spdf = f60(filnavn=None)
+            spdf = F60(filnavn=None)
             spdf.settFakturainfo(ordre._id, ordre.ordredato, ordre.forfall, ordre.tekst)
             spdf.settFirmainfo(ordre.firma._egenskaper)
             try:
@@ -521,6 +592,7 @@ class fakturaSikkerhetskopi(FakturaKomponent):
             FakturaKomponent.__init__(self, db, Id)
 
     def ordre(self):
+        # TODO: What is the purpose here, Should this be a property instead?
         return fakturaOrdre(self.db, Id=self.ordreID)
 
     def hentEgenskaper(self):
@@ -534,7 +606,6 @@ class fakturaSikkerhetskopi(FakturaKomponent):
         self._egenskaper['data'] = pdfType(r[3])
 
     def lagFil(self):
-        from tempfile import mkstemp
         f, filnavn = mkstemp('.pdf', 'sikkerhetsfaktura')
         #fil = open(filnavn, "wb")
         #fil.write(str(self.data))
@@ -543,7 +614,7 @@ class fakturaSikkerhetskopi(FakturaKomponent):
         os.close(f)
         return filnavn
 
-    def vis(self, program=PDFVIS):
+    def vis(self, program: str = PDFVIS):
         "Dersom program inneholder %s vil den bli erstattet med filnavnet, ellers lagt til etter program"
         logging.debug('Åpner sikkerhetskopi #%i med programmet "%s"', self._id, program)
         p = program.encode(sys.getfilesystemencoding())  # subprocess.call på windows takler ikke unicode!
@@ -560,7 +631,19 @@ class fakturaEpost(FakturaKomponent):
     _tabellnavn = "Epost"
     _id = 1
 
-    def __init__(self, db):
+    bcc: str
+    transport: int
+    gmailbruker: str
+    gmailpassord: str
+    smtpserver: str
+    smtpport: int
+    smtptls: int
+    smtpauth: int
+    smtpbruker: str
+    smtppassord: str
+    sendmailsti: str
+
+    def __init__(self, db: sqlite3.Connection):
         self.db = db
         try:
             FakturaKomponent.__init__(self, db, Id=self._id)
@@ -577,7 +660,7 @@ class fakturaEpost(FakturaKomponent):
 class pdfType:
     'Egen type for å holde pdf (f.eks. sikkerhetskopi)'
 
-    def __init__(self, data):
+    def __init__(self, data: Any):
         self.data = data
 
     #def _quote(self):

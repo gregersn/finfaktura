@@ -138,7 +138,7 @@ def setlocale():
 setlocale()
 
 
-class f60:
+class F60:
     "Lager en pdf etter malen til Giro F60-1, for utskrift eller elektronisk bruk"
     standardskrift = "Helvetica"
     standardstorrelse = 10
@@ -150,7 +150,7 @@ class f60:
     filnavn = ''
     datoformat: str = "%Y-%m-%d"
 
-    def __init__(self, filnavn: str, overskriv: bool = False):
+    def __init__(self, filnavn: Optional[str], overskriv: bool = False):
         self.overskriv = overskriv
         if filnavn is None:  # lag tempfil
             self.filnavn = self.lagTempFilnavn()
@@ -784,7 +784,7 @@ if __name__ == '__main__':
     #test
     logging.basicConfig(level=logging.DEBUG)
     filnavn = './testfaktura.pdf'
-    faktura = f60(filnavn, overskriv=True)
+    faktura = F60(filnavn, overskriv=True)
     faktura.settKundeinfo(0o6, "Topert\nRopertgata 33\n9022 Nissedal")
     faktura.settFakturainfo(0o3,
                             1145542709,

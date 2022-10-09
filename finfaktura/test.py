@@ -9,9 +9,8 @@
 # $Id$
 ###########################################################################
 
-import types, os, sys, os.path
+import sys
 
-from time import time, strftime, localtime
 import sqlite3
 from pprint import pprint
 from .fakturabibliotek import *
@@ -38,7 +37,7 @@ if __name__ == "__main__":
         v.navn = "2-sider Linuxmagasinet"
         v.detaljer = "Tekst som går over to sider"
         v.enhet = "stk"
-        v.pris = "2500"
+        v.pris = 2500
         print("vare:", v)
     if "nyfaktura" in test:
         _kunde = fakturaKunde(cx, 1)
@@ -96,10 +95,10 @@ if __name__ == "__main__":
                 print("ordre# %s har ingen sikkerhetskopi!" % kopi.ordreID)
                 continue
             fil = "/tmp/sikk.%s.%s.pdf" % (kopi.dato, kopi.ordreID)
-            f = file(fil, "w")
-            f.write(kopi.data)
-            f.close()
-            print("sikkerhetskopi#%i av faktura # %s dumpet til %s" % (kopi._id, kopi.ordreID, fil))
+            with open(fil, "w") as f:
+                f.write(str(kopi.data))
+                f.close()
+            print("sikkerhetskopi#%i av faktura # %s dumpet til %s" % (kopi.id, kopi.ordreID, fil))
     if "epost" in test:
         _firma = fakturaFirmainfo(cx)
         f = fakturaOrdre(cx, Id=1, firma=_firma)
@@ -122,15 +121,15 @@ if __name__ == "__main__":
     if "kid" in test:
         print("tester kid-funksjoner i f60")
         from . import f60
-        f = f60.f60(filnavn=None)
+        f = f60.F60(filnavn=None)
         kid = "001234000123"
-        sjekksum = f.lagSjekksum(kid)
+        sjekksum = f.lagKontrollsifferMod10(kid)
         fullKid = kid + str(sjekksum)
         print("sjekksum: %s, fullKid: %s" % (sjekksum, fullKid))
         print("full KID (%s) stemmer: %s" % (fullKid, f.sjekkKid(fullKid)))
 
         fullKid2 = "0257270170026"
         print("fullKid2 (%s) stemmer: %s" % (fullKid2, f.sjekkKid(fullKid2)))
-        print(f.lagSjekksum("12464533060099620"))
+        print(f.lagKontrollsifferMod10("12464533060099620"))
 
     cx.close()

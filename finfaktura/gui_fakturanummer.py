@@ -17,7 +17,7 @@ import logging
 
 from stat import ST_MTIME
 
-from PyQt5 import QtCore, QtGui, uic
+from PyQt6 import QtCore, QtGui, uic
 #from ui import fakturanummer_ui
 
 import sqlite3

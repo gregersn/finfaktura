@@ -10,13 +10,13 @@
 
 from pathlib import Path
 import os, sys, os.path, shutil
-from time import time, strftime, localtime
-import logging, subprocess
-from typing import Optional
+from time import time
+import logging
+from typing import Any, List, Optional
 import xml.etree.ElementTree  # help py2exe
 import sqlite3
 
-from . import historikk, fil
+from . import fil
 from .fakturakomponenter import FakturaOppsett, fakturaEpost, fakturaFirmainfo, \
         fakturaOrdre, fakturaVare, fakturaKunde, fakturaSikkerhetskopi
 from .fakturafeil import *
@@ -47,11 +47,11 @@ class FakturaBibliotek:
         if v is None: return 2.0  # før versjonsnummeret kom inn i db
         else: return v
 
-    def hentKunde(self, kundeID):
+    def hentKunde(self, kundeID: int):
         #assert(type(kundeID
         return fakturaKunde(self.db, kundeID)
 
-    def hentKunder(self, inkluderSlettede=False):
+    def hentKunder(self, inkluderSlettede: bool = False):
         sql = "SELECT ID FROM %s" % fakturaKunde._tabellnavn
         if not inkluderSlettede: sql += " WHERE slettet IS NULL OR slettet = 0"
         self.c.execute(sql)
@@ -74,7 +74,7 @@ class FakturaBibliotek:
     def hentVare(self, Id: Optional[int]):
         return fakturaVare(self.db, Id)
 
-    def finnVareEllerLagNy(self, navn: str, pris: float, mva: float, enhet: str):
+    def finnVareEllerLagNy(self, navn: str, pris: float, mva: int, enhet: str):
         sql = "SELECT ID FROM %s" % fakturaVare._tabellnavn
         sql += " WHERE navn=? AND pris=? AND mva=?"
         #print sql, navn, pris, mva
@@ -94,7 +94,11 @@ class FakturaBibliotek:
             vare.enhet = enhet.strip()
             return vare
 
-    def nyOrdre(self, kunde=None, Id: Optional[int] = None, ordredato: Optional[int] = None, forfall: Optional[int] = None):
+    def nyOrdre(self,
+                kunde: Optional[fakturaKunde] = None,
+                Id: Optional[int] = None,
+                ordredato: Optional[int] = None,
+                forfall: Optional[int] = None):
         return fakturaOrdre(self.db, kunde=kunde, Id=Id, firma=self.firmainfo(), dato=ordredato, forfall=forfall)
 
     def hentOrdrer(self):
@@ -113,7 +117,7 @@ class FakturaBibliotek:
         self.c.execute("SELECT DISTINCT %s FROM %s" % (egenskap, tabell))
         return [str(x[0]) for x in self.c.fetchall() if x[0]]
 
-    def lagSikkerhetskopi(self, ordre):
+    def lagSikkerhetskopi(self, ordre: fakturaOrdre):
         s = fakturaSikkerhetskopi(self.db, ordre)
         #historikk.pdfSikkerhetskopi(ordre, True, "lagSikkerhetskopi)")
         return s
@@ -125,7 +129,7 @@ class FakturaBibliotek:
     def sjekkSikkerhetskopier(self, lagNyAutomatisk: bool = False):
         sql = "SELECT Ordrehode.ID, Sikkerhetskopi.ID FROM Ordrehode LEFT OUTER JOIN Sikkerhetskopi ON Ordrehode.ID=Sikkerhetskopi.ordreID WHERE data IS NULL"
         self.c.execute(sql)
-        ordrer = []
+        ordrer: List[fakturaOrdre] = []
         for z in self.c.fetchall():
             logging.debug("Ordre #%i har ingen gyldig sikkerhetskopi!", z[0])
             o = fakturaOrdre(self.db, Id=z[0], firma=self.firmainfo())
@@ -133,7 +137,7 @@ class FakturaBibliotek:
                 # merk evt. gammel sikkerhetskopi som ugyldig
                 if z[1]:
                     s = fakturaSikkerhetskopi(self.db, Id=z[1])
-                    s.data = False
+                    s.data = None
                 try:
                     self.lagSikkerhetskopi(o)
                     #historikk.pdfSikkerhetskopi(o, True, "sjekksikkerhetskopier(lagNyAutomatisk=True)")
@@ -144,17 +148,21 @@ class FakturaBibliotek:
                 ordrer.append(o)
         return ordrer
 
-    def lagPDF(self, ordre, blankettType, _filnavn=None):
-        from .f60 import f60, REPORTLAB
+    def lagPDF(self, ordre: fakturaOrdre, blankettType: str, _filnavn: Optional[str] = None):
+        from .f60 import F60, REPORTLAB
         if not REPORTLAB:
             raise PDFFeil('Modulen "reportlab" er ikke installert. Uten denne kan du ikke lage pdf-fakturaer.')
 
-        pdf = f60(filnavn=_filnavn)
+        assert ordre.id is not None
+        assert ordre.firma is not None
+        pdf = F60(filnavn=_filnavn)
         #if not self.produksjonsversjon: pdf.settTestversjon()
-        pdf.settFakturainfo(ordre._id, ordre.ordredato, ordre.forfall, ordre.tekst)
-        pdf.settFirmainfo(ordre.firma._egenskaper)
+        pdf.settFakturainfo(ordre.id, ordre.ordredato, ordre.forfall, ordre.tekst)
+        pdf.settFirmainfo(ordre.firma.egenskaper)
         try:
-            pdf.settKundeinfo(ordre.kunde._id, ordre.kunde.postadresse())
+            assert ordre.kunde is not None
+            assert ordre.kunde.id is not None
+            pdf.settKundeinfo(ordre.kunde.id, ordre.kunde.postadresse())
         except KundeFeil as e:
             raise FakturaFeil("Kunne ikke lage PDF! %s" % e)
         pdf.settOrdrelinje(ordre.hentOrdrelinje)
@@ -171,7 +179,7 @@ class FakturaBibliotek:
 
         return pdf
 
-    def skrivUt(self, filnavn):
+    def skrivUt(self, filnavn: str):
         return fil.vis(filnavn)
 
     def sendEpost(self, ordre, pdf, tekst=None, transport='auto'):
@@ -221,7 +229,7 @@ class FakturaBibliotek:
             raise ex
         logging.debug('tester epost. transport: %s', transport)
         m = getattr(epost, transport)()  # laster riktig transport
-        assert (m, epost.epost)
+        assert m == epost.epost
         oppsett = self.epostoppsett
         if transport == 'smtp':
             m.tls(bool(oppsett.smtptls))
@@ -266,7 +274,7 @@ def byggDatabase(db: sqlite3.Connection, sqlfile: Optional[str] = None):
     if sqlfile is not None:
         sql = open(sqlfile).read()
     else:
-        sql = str(lesRessurs(':/sql/faktura.sql'))
+        sql = str(lesRessurs('sql:faktura.sql'))
     db.executescript(sql)
     db.cursor().execute("INSERT INTO Oppsett (ID, databaseversjon, fakturakatalog) VALUES (1, ?, ?)", (DATABASEVERSJON, '~'))
     db.commit()
@@ -356,19 +364,22 @@ def lesRessurs(ressurs: str):
 
     'ressurs' er på formatet ':/sti/navn', for eksempel ':/sql/faktura.sql'
     """
-    from PyQt5 import QtCore
+    from PyQt6 import QtCore
+    QtCore.QDir.addSearchPath('sql', '.')
+    QtCore.QDir.addSearchPath('pix', './finfaktura/ui/')
+    QtCore.QDir.addSearchPath('data', '.')
     f = QtCore.QFile(ressurs)
-    if not f.open(QtCore.QIODevice.ReadOnly | QtCore.QIODevice.Text):
+    if not f.open(QtCore.QIODevice.OpenModeFlag.ReadOnly | QtCore.QIODevice.OpenModeFlag.Text):
         raise IOError("Kunne ikke åpne ressursen '%s'" % ressurs)
     t = QtCore.QTextStream(f)
-    t.setCodec("UTF-8")
+
     s = t.readAll()
     f.close()
     return s
 
 
-def typeofqt(obj):
-    from PyQt5 import QtGui, QtWidgets
+def typeofqt(obj: Any):
+    from PyQt6 import QtGui, QtWidgets
     if isinstance(obj, QtWidgets.QSpinBox): return 'QSpinBox'
     elif isinstance(obj, QtWidgets.QDoubleSpinBox): return 'QDoubleSpinBox'
     elif isinstance(obj, QtWidgets.QLineEdit): return 'QLineEdit'

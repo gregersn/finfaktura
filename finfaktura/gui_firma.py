@@ -12,7 +12,7 @@
 
 import logging
 from typing import Any, Dict, Union
-from PyQt5 import QtCore, QtGui, QtWidgets
+from PyQt6 import QtCore, QtGui, QtWidgets
 
 from finfaktura.fakturakomponenter import fakturaFirmainfo
 from .ui import firmainfo_ui
@@ -47,7 +47,7 @@ class FirmaOppsett(firmainfo_ui.Ui_firmaOppsett):
 
     def exec(self):
         res = self.gui.exec()
-        if res == QtWidgets.QDialog.Accepted:
+        if res == QtWidgets.QDialog.DialogCode.Accepted:
             return self.samleInfo()
         return {}
 

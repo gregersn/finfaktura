@@ -390,7 +390,7 @@ betalings&amp;vilkår</string>
                <number>1</number>
               </property>
               <property name="pixmap" >
-               <pixmap resource="../../faktura.qrc" >:/pix/missing.svg</pixmap>
+               <pixmap resource="../../faktura.qrc" >pix:missing.svg</pixmap>
               </property>
               <property name="scaledContents" >
                <bool>true</bool>

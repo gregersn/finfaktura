@@ -11,7 +11,7 @@
 ###########################################################################
 
 import sys, logging, os.path, glob
-from PyQt5 import QtCore, QtGui, QtWidgets
+from PyQt6 import QtCore, QtGui, QtWidgets
 from .ui import finfaktura_oppsett_ui
 
 
@@ -29,7 +29,7 @@ class finfakturaOppsett(finfaktura_oppsett_ui.Ui_FinFakturaOppsett):
 
     def exec(self):
         res = self.gui.exec()
-        if res == QtWidgets.QDialog.Accepted:
+        if res == QtWidgets.QDialog.DialogCode.Accepted:
             logging.debug('oppdaterer')
             self.oppdater()
         return res
