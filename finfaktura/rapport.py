@@ -9,18 +9,19 @@
 ###########################################################################
 
 from pathlib import Path
-import sys, time, os, types
+import time
+import os
 
-import logging, subprocess
+import logging
 from typing import Any, Dict, List, Optional
-
-from finfaktura.fakturakomponenter import fakturaOrdre
-
-from . import fakturafeil, fil
 
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.lib.pagesizes import A4
 from reportlab.platypus import Paragraph, SimpleDocTemplate
+
+from finfaktura.fakturakomponenter import fakturaOrdre
+
+from . import fakturafeil, fil
 
 REPORTLAB = True
 
@@ -33,7 +34,6 @@ class rapport:
         if not REPORTLAB:
             raise fakturafeil.InstallasjonsFeil('python-reportlab er ikke installert. Kan ikke lage PDF!')
         if filnavn is None:
-            import tempfile
             f, self.filnavn = tempfile.mkstemp(suffix='.pdf', prefix='rapport-')
             os.close(f)  # lukk fil-deskriptoren
         else:

@@ -59,12 +59,25 @@ Se forøvrig http://code.google.com/p/finfaktura/wiki/PythonF60
 # $Id: f60.py 541 2009-04-12 19:20:55Z havard.gulldahl $
 ###########################################################################
 
-import sys, time, os, types
+import sys
+import time
+import os
+import types
 
-import logging, subprocess, locale
+import logging
+import subprocess
+import locale
 
 import io
 from typing import Any, Callable, Dict, List, Optional, Union
+from tempfile import mkstemp
+
+import reportlab
+from reportlab.pdfgen import canvas
+from reportlab.lib.units import mm, inch
+from reportlab.lib.colors import yellow, white
+from reportlab.lib.pagesizes import A4
+from reportlab.pdfgen.pdfimages import PDFImage
 
 
 class f60Eksisterer(Exception):
@@ -82,13 +95,6 @@ class f60FeilKID(Exception):
 class f60InstallasjonsFeil(Exception):
     pass
 
-
-import reportlab
-from reportlab.pdfgen import canvas
-from reportlab.lib.units import mm, inch
-from reportlab.lib.colors import yellow, pink, white
-from reportlab.lib.pagesizes import A4
-from reportlab.pdfgen.pdfimages import PDFImage
 
 REPORTLAB = True
 
@@ -253,7 +259,6 @@ class F60:
 
     def lagTempFilnavn(self):
         "Lager et temporært filnavn"
-        from tempfile import mkstemp
         f, filnavn = mkstemp(".pdf", "faktura-")
         os.close(f)
         return filnavn

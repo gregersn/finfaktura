@@ -11,16 +11,18 @@
 #
 ###########################################################################
 
-import sys, os, os.path, logging, glob
-from time import time, strftime, localtime, mktime
+import sys
+import os
+import os.path
+import glob
+from time import strftime, localtime
 import logging
+import sqlite3
 
 from stat import ST_MTIME
 
-from PyQt6 import QtCore, QtGui, uic
+from PyQt6 import QtGui, uic
 #from ui import fakturanummer_ui
-
-import sqlite3
 
 
 class nummersetter:

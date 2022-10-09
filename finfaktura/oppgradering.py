@@ -19,6 +19,18 @@
 #     dersom feltnavnet er None, blir det oversett (dette er bare fornuftig
 #     om tabellen har blitt fjernet eller gitt nytt navn
 
+from pathlib import Path
+
+import sqlite3
+
+import os
+import time
+import sys
+import shutil
+from pprint import pprint
+
+from . import fakturabibliotek
+
 ENDRINGER = """
 
 1.6:Firma:orgnr=organisasjonsnummer
@@ -85,15 +97,6 @@ ENDRINGER = """
 3.2:Ordrelinje:tekst+
 """
 
-from pathlib import Path
-from . import fakturabibliotek
-
-import sqlite3
-
-import os, time, types, sys, shutil
-
-from pprint import pprint
-
 
 class OppgraderingsFeil(Exception):
     info = ""
@@ -108,7 +111,6 @@ class oppgrader:
 
     def __init__(self, logg=None):
         if logg is None:
-            from io import StringIO
             logg = StringIO()
         self.logg = logg
         self.lastEndringer(ENDRINGER)
@@ -291,7 +293,6 @@ class oppgrader:
         #kjør oppgradering
         try:
             shutil.move(dbSti, dbBackup)
-            from .fakturabibliotek import kobleTilDatabase
             ny = kobleTilDatabase(dbSti)
             gml = kobleTilDatabase(dbBackup)
             self.lastNyDatabase(ny)

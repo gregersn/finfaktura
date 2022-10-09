@@ -10,8 +10,12 @@
 #
 ###########################################################################
 
-import sys, os, logging, mimetypes, stat
-from PyQt6 import QtCore, QtGui, QtWidgets
+import sys
+import os
+import logging
+import mimetypes
+import stat
+from PyQt6 import QtGui, QtWidgets
 from .ui import sendepost_ui
 
 

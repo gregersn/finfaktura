@@ -8,10 +8,9 @@
 # $Id$
 ###########################################################################
 
+import time
 import sqlite3
 from . import fakturakomponenter
-import types, sys, time
-import logging
 
 
 class fakturaHandling(fakturakomponenter.FakturaKomponent):  #(fakturabibliotek.fakturaKomponent):

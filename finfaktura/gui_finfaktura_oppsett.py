@@ -10,8 +10,11 @@
 #
 ###########################################################################
 
-import sys, logging, os.path, glob
-from PyQt6 import QtCore, QtGui, QtWidgets
+import sys
+import logging
+import os.path
+import glob
+from PyQt6 import QtCore, QtWidgets
 from .ui import finfaktura_oppsett_ui
 
 

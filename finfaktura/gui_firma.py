@@ -168,10 +168,11 @@ class FirmaOppsett(firmainfo_ui.Ui_firmaOppsett):
                 kravkart.pop(obj)
         return kravkart
 
-    def firmaSjekk(self, event=None):
-        ok = QtGui.QColor('white')
-        tom = QtGui.QColor('red')
-        widget = 'QWidget'
+    def firmaSjekk(self, _: Any = None):
+        # ok = QtGui.QColor('white')
+        # tom = QtGui.QColor('red')
+        # widget = 'QWidget'
+        test = False
         for obj in list(self._kontrollkart.keys()):
             if isinstance(obj, (QtWidgets.QSpinBox, QtWidgets.QDoubleSpinBox)): test = obj.value() > 0
             elif isinstance(obj, QtWidgets.QComboBox): test = obj.currentText()
@@ -179,6 +180,7 @@ class FirmaOppsett(firmainfo_ui.Ui_firmaOppsett):
             elif isinstance(obj, QtWidgets.QPlainTextEdit): test = obj.toPlainText()
             else:
                 logging.error('mangler test for %s (%s)' % (obj, type(obj)))
+
             if test:
                 #obj.setPaletteBackgroundColor(ok)
                 #logging.debug('firmaSjekk: ok for %s', obj.typeName())
@@ -210,7 +212,8 @@ class FirmaOppsett(firmainfo_ui.Ui_firmaOppsett):
                     return False
 
                 stream = QtCore.QBuffer()
-                scaledlogo = logo.scaled(QtCore.QSize(360, 360), QtCore.Qt.KeepAspectRatio, QtCore.Qt.SmoothTransformation)
+                scaledlogo = logo.scaled(QtCore.QSize(360, 360), QtCore.Qt.AspectRatioMode.KeepAspectRatio,
+                                         QtCore.Qt.TransformationMode.SmoothTransformation)
                 scaledlogo.save(stream, 'PNG')
                 #self.firma.logo = buffer(stream.data())
                 self.firma.logo = str(stream.data())

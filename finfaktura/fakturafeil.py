@@ -1,5 +1,4 @@
 #!/usr/bin/env python3 -d
-# -*-*- coding:utf8 -*-*-
 ###########################################################################
 #    Copyright (C) 2005-2008 Håvard Gulldahl
 #    <havard@lurtgjort.no>
@@ -8,51 +7,52 @@
 #
 # $Id$
 ###########################################################################
+"""Exceptions for Invoice."""
 
 
 class FakturaFeil(Exception):
-    pass
+    """Error in invoice."""
 
 
 class KundeFeil(Exception):
-    pass
+    """Error with customer."""
 
 
 class DBKorruptFeil(Exception):
-    pass
+    """Database corrupt."""
 
 
 class DBGammelFeil(Exception):
-    pass
+    """Database is outdated."""
 
 
 class DBNyFeil(Exception):
-    pass
+    """Database is too new."""
 
 
 class DBTomFeil(Exception):
-    pass
+    """Database is empty."""
 
 
 class DBVersjonFeil(Exception):
-    pass
+    """Database version is wrong."""
 
 
 class FirmainfoFeil(Exception):
-    pass
+    """Error in information about company."""
 
 
 class SikkerhetskopiFeil(Exception):
-    pass
+    """Error in backup."""
 
 
 class PDFFeil(Exception):
-    pass
+    """Error in PDF."""
 
 
 class RessurserManglerFeil(Exception):
-    pass
+    """Resource is missing."""
 
 
 class InstallasjonsFeil(Exception):
-    pass
+    """Installation error."""

@@ -545,9 +545,12 @@ class FakturaOppsett(FakturaKomponent):
     def nyId(self):
         pass
 
+    """
+    TODO: Remove?
     def migrerDatabase(self, nydb, sqlFil):
         db = lagDatabase(nydb, sqlFil)
         # hva nå?
+    """
 
     def hentVersjon(self):
         if not self._sqlExists:  #arbeider med for gammel versjon til at tabellen finnes

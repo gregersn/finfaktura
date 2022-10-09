@@ -10,10 +10,9 @@
 #
 ###########################################################################
 
-from optparse import Option
 from pathlib import Path
 import sqlite3
-import sys, os.path, mimetypes, re
+import sys
 
 from time import time, strftime, localtime, mktime
 import logging
@@ -24,22 +23,22 @@ from finfaktura.fakturabibliotek import PRODUKSJONSVERSJON, \
     FakturaBibliotek, kobleTilDatabase, lagDatabase, finnDatabasenavn, \
     sikkerhetskopierFil, lesRessurs
 import finfaktura.f60 as f60
+from finfaktura.fakturafeil import RessurserManglerFeil
 import finfaktura.okonomi as fakturaOkonomi
-import finfaktura.sikkerhetskopi as sikkerhetskopi
+
 import finfaktura.historikk as historikk
 import finfaktura.rapport
 import finfaktura.fakturakomponenter
 import finfaktura.fil
-from finfaktura.fakturafeil import *
 
-from PyQt6 import QtCore, QtGui, uic, QtWidgets
+from PyQt6 import QtCore, QtGui, QtWidgets
 
 try:
     from finfaktura.ui.faktura_ui import Ui_FinFaktura
     from . import gui_sendepost, gui_epost, gui_finfaktura_oppsett, gui_firma, gui_fakturanummer
 except ImportError as import_error:
     print("Could not import that stuff")
-    raise RessurserManglerFeil(import_error)
+    raise RessurserManglerFeil(import_error) from import_error
 
 PDFVIS = "/usr/bin/xdg-open"  # program for å vise PDF
 
@@ -164,7 +163,6 @@ class FinFaktura(QtWidgets.QMainWindow):  #Ui_MainWindow): ## leser gui fra fakt
                 self.db.close()
                 del (self.db)
                 del (self.c)
-            from finfaktura.oppgradering import oppgrader, OppgraderingsFeil
             o = oppgrader()
             try:
                 o.oppgraderSamme(finnDatabasenavn())

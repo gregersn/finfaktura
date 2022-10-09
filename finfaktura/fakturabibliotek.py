@@ -9,17 +9,23 @@
 ###########################################################################
 
 from pathlib import Path
-import os, sys, os.path, shutil
+import os
+import sys
+import os.path
+import shutil
 from time import time
 import logging
 from typing import Any, List, Optional
-import xml.etree.ElementTree  # help py2exe
+# import xml.etree.ElementTree  # help py2exe
 import sqlite3
 
 from . import fil
 from .fakturakomponenter import FakturaOppsett, fakturaEpost, fakturaFirmainfo, \
         fakturaOrdre, fakturaVare, fakturaKunde, fakturaSikkerhetskopi
-from .fakturafeil import *
+
+from . import epost
+
+from .f60 import F60, REPORTLAB
 
 PRODUKSJONSVERSJON = False  # Sett denne til True for å skjule funksjonalitet som ikke er ferdigstilt
 DATABASEVERSJON = 3.1
@@ -149,7 +155,6 @@ class FakturaBibliotek:
         return ordrer
 
     def lagPDF(self, ordre: fakturaOrdre, blankettType: str, _filnavn: Optional[str] = None):
-        from .f60 import F60, REPORTLAB
         if not REPORTLAB:
             raise PDFFeil('Modulen "reportlab" er ikke installert. Uten denne kan du ikke lage pdf-fakturaer.')
 
@@ -183,7 +188,6 @@ class FakturaBibliotek:
         return fil.vis(filnavn)
 
     def sendEpost(self, ordre, pdf, tekst=None, transport='auto'):
-        from . import epost
         if type(transport) == int:
             transport = epost.TRANSPORTMETODER[transport]
         if transport == 'auto':
@@ -206,7 +210,6 @@ class FakturaBibliotek:
         return m.send()
 
     def testEpost(self, transport='auto'):
-        from . import epost
         if type(transport) == int:
             transport = epost.TRANSPORTMETODER[transport]
         logging.debug('skal teste transport: %s', transport)
@@ -229,7 +232,7 @@ class FakturaBibliotek:
             raise ex
         logging.debug('tester epost. transport: %s', transport)
         m = getattr(epost, transport)()  # laster riktig transport
-        assert m == epost.epost
+        assert m == epost.Epost
         oppsett = self.epostoppsett
         if transport == 'smtp':
             m.tls(bool(oppsett.smtptls))
@@ -379,7 +382,7 @@ def lesRessurs(ressurs: str):
 
 
 def typeofqt(obj: Any):
-    from PyQt6 import QtGui, QtWidgets
+    from PyQt6 import QtWidgets
     if isinstance(obj, QtWidgets.QSpinBox): return 'QSpinBox'
     elif isinstance(obj, QtWidgets.QDoubleSpinBox): return 'QDoubleSpinBox'
     elif isinstance(obj, QtWidgets.QLineEdit): return 'QLineEdit'

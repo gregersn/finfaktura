@@ -10,8 +10,10 @@
 # $Id$
 ###########################################################################
 
+import os
 from pathlib import Path
 import sys
+from typing import Any, List, Optional
 from .fakturabibliotek import FakturaBibliotek, kobleTilDatabase
 
 
@@ -64,7 +66,6 @@ def cli_faktura():
 
 def CLIenkoding():
     "Prøver å finne den gjeldende enkodingen på input"
-    import os
     for z in ('LANG', 'LC_CTYPE', 'LC_ALL'):
         if z in os.environ:
             k = os.environ[z].lower()
@@ -72,8 +73,7 @@ def CLIenkoding():
     return 'latin1'
 
 
-def CLIListe(liste, tekst=None):
-    from pprint import pprint
+def CLIListe(liste: List[Any], tekst: Optional[str] = None):
     if not tekst:
         tekst = "velg blant %s:" % len(liste)
     try:
@@ -86,7 +86,6 @@ def CLIListe(liste, tekst=None):
     except EOFError:
         return CLIListe(liste)
     except KeyboardInterrupt:
-        import sys
         print()
         sys.exit(1)
     else:
@@ -97,13 +96,12 @@ def CLIListe(liste, tekst=None):
             return liste[idx]
 
 
-def CLIInput(tekst):
+def CLIInput(tekst: str) -> str:
     try:
         ret = input(tekst)
     except EOFError:
         return CLIInput(tekst)
     except KeyboardInterrupt:
-        import sys
         print()
         sys.exit(1)
     else:
