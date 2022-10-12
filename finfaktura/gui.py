@@ -660,7 +660,7 @@ class FinFaktura(QtWidgets.QMainWindow):  #Ui_MainWindow): ## leser gui fra fakt
 
     def avkansellerFaktura(self):
         try:
-            ordre = self.gui.fakturaFakturaliste.selectedItems()[0].ordre
+            ordre: finfaktura.fakturakomponenter.fakturaOrdre = self.gui.fakturaFakturaliste.selectedItems()[0].ordre
         except IndexError:
             self.alert("Ingen faktura er valgt")
             return
@@ -670,7 +670,7 @@ class FinFaktura(QtWidgets.QMainWindow):  #Ui_MainWindow): ## leser gui fra fakt
 
     def purrFaktura(self):
         try:
-            ordre = self.gui.fakturaFakturaliste.selectedItems()[0].ordre
+            ordre: finfaktura.fakturakomponenter.fakturaOrdre = self.gui.fakturaFakturaliste.selectedItems()[0].ordre
         except IndexError:
             self.alert("Ingen faktura er valgt")
             return
@@ -678,7 +678,7 @@ class FinFaktura(QtWidgets.QMainWindow):  #Ui_MainWindow): ## leser gui fra fakt
 
     def inkassoFaktura(self):
         try:
-            ordre = self.gui.fakturaFakturaliste.selectedItems()[0].ordre
+            ordre: finfaktura.fakturakomponenter.fakturaOrdre = self.gui.fakturaFakturaliste.selectedItems()[0].ordre
         except IndexError:
             self.alert("Ingen faktura er valgt")
             return
@@ -693,6 +693,7 @@ class FinFaktura(QtWidgets.QMainWindow):  #Ui_MainWindow): ## leser gui fra fakt
     def sendEpostfaktura(self, ordre: finfaktura.fakturakomponenter.fakturaOrdre, tekst: str, filnavn: Path):
         try:
             logging.debug('sender epostfaktura: ordre # %i, til: %s', ordre._id, ordre.kunde.epost)
+            assert self.faktura.epostoppsett is not None
             logging.debug('bruker transport %s', self.faktura.epostoppsett.transport)
             self.faktura.sendEpost(ordre, filnavn, tekst, self.faktura.epostoppsett.transport)
         except:
@@ -748,7 +749,7 @@ class FinFaktura(QtWidgets.QMainWindow):  #Ui_MainWindow): ## leser gui fra fakt
         kunde = self.gui.kundeKundeliste.currentItem().kunde
         self.lastKunde(kunde)
 
-    def lastKunde(self, kunde=None):
+    def lastKunde(self, kunde: Optional[finfaktura.fakturakomponenter.fakturaKunde]=None):
         self.denne_kunde = kunde
         statuser = self.faktura.hentEgenskapVerdier("Kunde", "status")
         self.gui.kundeInfoStatus.clear()
@@ -812,7 +813,7 @@ class FinFaktura(QtWidgets.QMainWindow):  #Ui_MainWindow): ## leser gui fra fakt
         k.status = str(self.gui.kundeInfoStatus.currentText()).strip()
         k.adresse = str(self.gui.kundeInfoAdresse.toPlainText()).strip()
         k.poststed = str(self.gui.kundeInfoPoststed.text()).strip()
-        k.postnummer = self.gui.kundeInfoPostnummer.text()
+        k.postnummer = int(self.gui.kundeInfoPostnummer.text(), 10)
         k.telefon = self.gui.kundeInfoTelefon.text()
         k.telefaks = self.gui.kundeInfoTelefaks.text()
         self.gui.kundeInfo.hide()
