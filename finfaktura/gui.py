@@ -23,10 +23,11 @@ from finfaktura.fakturabibliotek import PRODUKSJONSVERSJON, \
     FakturaBibliotek, kobleTilDatabase, lagDatabase, finnDatabasenavn, \
     sikkerhetskopierFil, lesRessurs
 import finfaktura.f60 as f60
-from finfaktura.fakturafeil import RessurserManglerFeil
+from finfaktura.fakturafeil import DBGammelFeil, DBNyFeil, RessurserManglerFeil, SikkerhetskopiFeil
 import finfaktura.okonomi as fakturaOkonomi
 
 import finfaktura.historikk as historikk
+from finfaktura.oppgradering import OppgraderingsFeil, oppgrader
 import finfaktura.rapport
 import finfaktura.fakturakomponenter
 import finfaktura.fil
@@ -746,10 +747,10 @@ class FinFaktura(QtWidgets.QMainWindow):  #Ui_MainWindow): ## leser gui fra fakt
             i(l)
 
     def redigerKunde(self, *kw):
-        kunde = self.gui.kundeKundeliste.currentItem().kunde
+        kunde: finfaktura.fakturakomponenter.fakturaKunde = self.gui.kundeKundeliste.currentItem().kunde
         self.lastKunde(kunde)
 
-    def lastKunde(self, kunde: Optional[finfaktura.fakturakomponenter.fakturaKunde]=None):
+    def lastKunde(self, kunde: Optional[finfaktura.fakturakomponenter.fakturaKunde] = None):
         self.denne_kunde = kunde
         statuser = self.faktura.hentEgenskapVerdier("Kunde", "status")
         self.gui.kundeInfoStatus.clear()
