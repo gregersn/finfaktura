@@ -199,6 +199,7 @@ class FakturaBibliotek:
                 return False
             self.epostoppsett.transport = transport
 
+        # TODO: Fail gracefully on this.
         m = getattr(epost, transport)()  # laster riktig transport (smtp/sendmail)
         oppsett = self.epostoppsett
         if transport == 'smtp':

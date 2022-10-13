@@ -19,7 +19,7 @@ from email.mime.text import MIMEText
 from email import encoders
 from email.header import Header
 import socket
-from typing import Any, List, Optional, Tuple, Union
+from typing import Any, List, Literal, Optional, Tuple, Union
 
 from finfaktura.fakturakomponenter import fakturaOrdre
 
@@ -46,6 +46,7 @@ class Epost:
     passord: str
     testmelding: bool = True
     vedlegg: List[Tuple[str, Any]] = []
+    transport: str
 
     def faktura(self,
                 ordre: fakturaOrdre,

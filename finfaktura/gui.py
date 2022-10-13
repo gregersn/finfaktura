@@ -19,11 +19,23 @@ import logging
 from typing import Any, Literal, Optional, Union
 
 import finfaktura
-from finfaktura.fakturabibliotek import PRODUKSJONSVERSJON, \
-    FakturaBibliotek, kobleTilDatabase, lagDatabase, finnDatabasenavn, \
-    sikkerhetskopierFil, lesRessurs
-import finfaktura.f60 as f60
-from finfaktura.fakturafeil import DBGammelFeil, DBNyFeil, RessurserManglerFeil, SikkerhetskopiFeil, FirmainfoFeil
+from finfaktura.fakturabibliotek import (
+    PRODUKSJONSVERSJON,
+    FakturaBibliotek,
+    kobleTilDatabase,
+    lagDatabase,
+    finnDatabasenavn,
+    sikkerhetskopierFil,
+    lesRessurs,
+)
+from finfaktura import f60
+from finfaktura.fakturafeil import (
+    DBGammelFeil,
+    DBNyFeil,
+    RessurserManglerFeil,
+    SikkerhetskopiFeil,
+    FirmainfoFeil,
+)
 import finfaktura.okonomi as fakturaOkonomi
 
 import finfaktura.historikk as historikk
@@ -45,6 +57,7 @@ PDFVIS = "/usr/bin/xdg-open"  # program for å vise PDF
 
 
 class FinFaktura(QtWidgets.QMainWindow):  #Ui_MainWindow): ## leser gui fra faktura_ui.py
+    """GUI main class."""
     db: Optional[sqlite3.Connection] = None
     denne_kunde = None
     denne_vare = None
@@ -1263,10 +1276,10 @@ class FinFaktura(QtWidgets.QMainWindow):  #Ui_MainWindow): ## leser gui fra fakt
     def visTekstVindu(self, ressurs: Union[Literal['om'], Literal['lisens']]):
         if ressurs == 'om':
             tittel = 'Om Fryktelig Fin Faktura, versjon %s' % finfaktura.__version__
-            r = ':/data/README'
+            r = 'data:README'
         elif ressurs == 'lisens':
             tittel = 'Programmet er fritt tilgjengelig under GPL, versjon 2:'
-            r = ':/data/LICENSE'
+            r = 'data:LICENSE'
         try:
             vindu = TekstVindu(tittel, lesRessurs(r))
             res = vindu.exec()
@@ -1326,7 +1339,7 @@ def start():
 
     translator = QtCore.QTranslator()
 
-    if (translator.load(QtCore.QLocale.system(), "finfaktura", "_", "./translations")):
+    if translator.load(QtCore.QLocale.system(), "finfaktura", "_", "./translations"):
         app.installTranslator(translator)
 
     ff = FinFaktura()
