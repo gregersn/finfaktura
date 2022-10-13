@@ -247,7 +247,7 @@ class fakturaOrdre(FakturaKomponent):
     tekst: str
     kansellert: int = 0
     ferdigstilt: int = 1
-    betalt: Optional[int] = 0
+    betalt: int = 0
 
     def __init__(self,
                  db: sqlite3.Connection,

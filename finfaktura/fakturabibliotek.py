@@ -361,9 +361,12 @@ def sikkerhetskopierFil(filnavn: Path):
     """lager sikkerhetskopi av filnavn -> filnavn~
 
     Forventer filnavn i unicode"""
-    logging.debug('skal sikkerhetskopiere %s (altså %s)', repr(filnavn), repr(filnavn))
+    logging.debug('sikkerhetskopierFil(filnavn: %s)')
     assert filnavn.is_file()
+
     bkpfil = f"{filnavn}-{int(time())}~"
+    logging.debug('sikkerhetskopierFil: til %s', bkpfil)
+
     return shutil.copyfile(filnavn, bkpfil)
 
 

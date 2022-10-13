@@ -16,14 +16,14 @@ import sys
 
 from time import time, strftime, localtime, mktime
 import logging
-from typing import Optional
+from typing import Any, Literal, Optional, Union
 
 import finfaktura
 from finfaktura.fakturabibliotek import PRODUKSJONSVERSJON, \
     FakturaBibliotek, kobleTilDatabase, lagDatabase, finnDatabasenavn, \
     sikkerhetskopierFil, lesRessurs
 import finfaktura.f60 as f60
-from finfaktura.fakturafeil import DBGammelFeil, DBNyFeil, RessurserManglerFeil, SikkerhetskopiFeil
+from finfaktura.fakturafeil import DBGammelFeil, DBNyFeil, RessurserManglerFeil, SikkerhetskopiFeil, FirmainfoFeil
 import finfaktura.okonomi as fakturaOkonomi
 
 import finfaktura.historikk as historikk
@@ -80,7 +80,7 @@ class FinFaktura(QtWidgets.QMainWindow):  #Ui_MainWindow): ## leser gui fra fakt
         #     self.fakturaFakturaliste.triggered.connect(const QtGui.QPoint&, int)"), self.redigerFaktura)
         self.gui.fakturaFaktaLegginn.clicked.connect(self.leggTilFaktura)
         self.gui.fakturaFakturaliste.currentItemChanged.connect(self.visFakturadetaljer)
-        self.gui.fakturaVareliste.itemChanged.connect(self.fakturaVarelisteSynk)
+        self.gui.fakturaVareliste.currentItemChanged.connect(self.fakturaVarelisteSynk)
         self.gui.fakturaFaktaVareLeggtil.clicked.connect(self.leggVareTilOrdre)
         #self.gui.fakturaFaktaVareFjern.triggered.connect(self.fjernVareFraOrdre)
         self.gui.fakturaLagEpost.clicked.connect(self.lagFakturaEpost)
@@ -201,7 +201,7 @@ class FinFaktura(QtWidgets.QMainWindow):  #Ui_MainWindow): ## leser gui fra fakt
         assert self.db is not None
         self.c = self.db.cursor()
 
-    def skiftTab(self, w):
+    def skiftTab(self, w: Any):
         i = self.gui.fakturaTab.currentIndex()
         if i == 0: self.visFaktura()
         elif i == 1: self.visKunder()
@@ -220,7 +220,7 @@ class FinFaktura(QtWidgets.QMainWindow):  #Ui_MainWindow): ## leser gui fra fakt
 
     def fakturaContextMenu(self, event: QtGui.QContextMenuEvent):
         try:
-            ordre = self.gui.fakturaFakturaliste.selectedItems()[0].ordre
+            ordre: finfaktura.fakturakomponenter.fakturaOrdre = self.gui.fakturaFakturaliste.selectedItems()[0].ordre
         except IndexError:
             return None  #ingen ordre er valgt
         meny = QtWidgets.QMenu(self)
@@ -277,11 +277,11 @@ class FinFaktura(QtWidgets.QMainWindow):  #Ui_MainWindow): ## leser gui fra fakt
 
     def nyFakturaFraKunde(self):
         try:
-            kunde = self.gui.kundeKundeliste.selectedItems()[0].kunde
+            kunde: finfaktura.fakturakomponenter.fakturaKunde = self.gui.kundeKundeliste.selectedItems()[0].kunde
         except IndexError:
             self.alert('Ingen kunde er valgt')
             return False
-        logging.debug("ny faktura fra kunde: %s", kunde.ID)
+        logging.debug("nyFakturaFraKunde: ny faktura fra kunde: %s", kunde.ID)
         self.gui.fakturaTab.setCurrentIndex(0)
         self.nyFaktura(kunde)
 
@@ -290,7 +290,8 @@ class FinFaktura(QtWidgets.QMainWindow):  #Ui_MainWindow): ## leser gui fra fakt
 #     kunde = self.faktura.hentKunde(kundeID)
 #     self.nyFaktura(kunde)
 
-    def nyFaktura(self, kunde: Optional[int] = None, ordrelinje: Optional[int] = None):
+    def nyFaktura(self, kunde: Optional[finfaktura.fakturakomponenter.fakturaKunde] = None, ordrelinje: Optional[int] = None):
+        logging.debug("nyFaktura(kune=%s, ordrelinje=%s", kunde, ordrelinje)
         # sjekk at firmainfo er fullstendig utfylt (så feiler vi ikke senere)
         try:
             self.firma.sjekkData()
@@ -395,9 +396,21 @@ class FinFaktura(QtWidgets.QMainWindow):  #Ui_MainWindow): ## leser gui fra fakt
 
         #skal vi lage blanketter nå?
         s = 'Den nye fakturaen er laget. Vil du lage tilhørende blankett nå?'
-        knapp = QtWidgets.QMessageBox.information(self, 'Lage blankett?', s, 'Epost', 'Papir', 'Senere', 0, 2)
-        if knapp == 0: self.lagFaktura(Type='epost')
-        elif knapp == 1: self.lagFaktura(Type='papir')
+        message_box = QtWidgets.QMessageBox(self)
+        message_box.setWindowTitle("Lage blankett?")
+        message_box.setText(s)
+        btn_epost = message_box.addButton("Epost", QtWidgets.QMessageBox.ButtonRole.AcceptRole)
+        btn_papir = message_box.addButton("Papir", QtWidgets.QMessageBox.ButtonRole.AcceptRole)
+        message_box.addButton("Senere", QtWidgets.QMessageBox.ButtonRole.NoRole)
+
+        message_box.exec()
+
+        logging.debug("leggTilFaktura: question response: %s", message_box.clickedButton())
+
+        if message_box.clickedButton() == btn_epost:
+            self.lagFaktura(Type='epost')
+        elif message_box.clickedButton() == btn_papir:
+            self.lagFaktura(Type='papir')
 
 #   def redigerFaktura(self, rad, koord, kolonne):
 #     linje = {}
@@ -415,7 +428,7 @@ class FinFaktura(QtWidgets.QMainWindow):  #Ui_MainWindow): ## leser gui fra fakt
         antallGUI.setDecimals(1)
         antallGUI.show()
         antallGUI.setToolTip('Antall varer levert')
-        # Antall.triggered.connect(lambda x: self.fakturaVarelisteSynk(rad, 1))
+        antallGUI.valueChanged.connect(lambda x: self.fakturaVarelisteSynk(rad, 1))
 
         prisGUI = QtWidgets.QDoubleSpinBox(self.gui.fakturaVareliste)
         prisGUI.setButtonSymbols(QtWidgets.QDoubleSpinBox.ButtonSymbols.UpDownArrows)
@@ -424,7 +437,7 @@ class FinFaktura(QtWidgets.QMainWindow):  #Ui_MainWindow): ## leser gui fra fakt
         prisGUI.setSuffix(' kr')
         prisGUI.show()
         prisGUI.setToolTip('Varens pris (uten MVA)')
-        # Pris.triggered.connect(lambda x: self.fakturaVarelisteSynk(rad, 2))
+        prisGUI.valueChanged.connect(lambda x: self.fakturaVarelisteSynk(rad, 2))
 
         mvaGUI = QtWidgets.QDoubleSpinBox(self.gui.fakturaVareliste)
         mvaGUI.setButtonSymbols(QtWidgets.QDoubleSpinBox.ButtonSymbols.UpDownArrows)
@@ -432,16 +445,16 @@ class FinFaktura(QtWidgets.QMainWindow):  #Ui_MainWindow): ## leser gui fra fakt
         mvaGUI.setSuffix(' %')
         mvaGUI.show()
         mvaGUI.setToolTip('MVA-sats som skal beregnes på varen')
-        # Mva.triggered.connect(lambda x: self.fakturaVarelisteSynk(rad, 3))
+        mvaGUI.valueChanged.connect(lambda x: self.fakturaVarelisteSynk(rad, 3))
 
         vareGUI = QtWidgets.QComboBox(self.gui.fakturaVareliste)
         for vare in self.faktura.hentVarer():
             vareGUI.addItem(str(vare.navn), QtCore.QVariant(vare))
         vareGUI.setEditable(True)
-        # Vare.setAutoCompletion(True)
+        # vareGUI.setAutoCompletion(True)
         vareGUI.show()
         vareGUI.setToolTip('Velg vare; eller skriv inn nytt varenavn og trykk <em>enter</em> for å legge til en ny vare')
-        # Vare.triggered.connect(lambda x: self.fakturaVarelisteSynk(rad, 0))
+        vareGUI.currentTextChanged.connect(lambda x: self.fakturaVarelisteSynk(rad, 0))
 
         self.gui.fakturaVareliste.setRowCount(rad + 1)
         self.gui.fakturaVareliste.setCellWidget(rad, 0, vareGUI)
@@ -451,26 +464,26 @@ class FinFaktura(QtWidgets.QMainWindow):  #Ui_MainWindow): ## leser gui fra fakt
         return self.fakturaVarelisteSynk(rad, 0)
 
     def fakturaVarelisteSynk(self, rad: int, kol: int):
-        logging.debug("Endring i vareliste: %s, %s", rad, kol)
+        logging.debug("fakturaVarelisteSynk(rad=%s, kol=%s)", rad, kol)
         sender = self.gui.fakturaVareliste.cellWidget(rad, kol)
         if kol == 0:  # endret på varen -> oppdater metadata
-            logging.debug("Endring av vare i linje.")
+            logging.debug("fakturaVarelisteSynk: Endring av vare i linje.")
             _vare = sender.itemData(sender.currentIndex())
-            logging.debug("Vare is: %s", _vare)
+            logging.debug("fakturaVarelisteSynk: Vare is: %s", _vare)
             if _vare:
-                logging.debug("Vare som finnes.")
+                logging.debug("fakturaVarelisteSynk: Vare som finnes.")
                 vare = _vare
                 self.gui.fakturaVareliste.cellWidget(rad, 1).setSuffix(' ' + str(vare.enhet))
                 self.gui.fakturaVareliste.cellWidget(rad, 2).setValue(float(vare.pris))
                 self.gui.fakturaVareliste.cellWidget(rad, 3).setValue(float(vare.mva))
             else:
                 # ny vare, tøm andre felt
-                logging.debug("ny vare opprettet: %s", str(sender.currentText()))
+                logging.debug("fakturaVarelisteSynk: ny vare opprettet: %s", str(sender.currentText()))
                 self.gui.fakturaVareliste.cellWidget(rad, 1).setSuffix('')
                 self.gui.fakturaVareliste.cellWidget(rad, 2).setValue(0.0)
                 self.gui.fakturaVareliste.cellWidget(rad, 3).setValue(float(self.firma.mva))
         else:
-            logging.debug("Endret varedata")
+            logging.debug("fakturaVarelisteSynk: Endret varedata")
             # endret på antall, mva eller pris -> oppdater sum
             p = mva = 0.0
             for i in range(self.gui.fakturaVareliste.rowCount()):
@@ -481,7 +494,7 @@ class FinFaktura(QtWidgets.QMainWindow):  #Ui_MainWindow): ## leser gui fra fakt
                 mva += _pris * _antall * _mva / 100
             self.gui.fakturaFaktaSum.setText("<u>%.2fkr (+%.2fkr mva)</u>" % (p, mva))
 
-    def visFakturadetaljer(self, linje):
+    def visFakturadetaljer(self, linje: finfaktura.fakturakomponenter.fakturaOrdrelinje):
         if linje is None:
             self.gui.fakturaDetaljerTekst.setText('')
             self.gui.fakturaHandlinger.setEnabled(False)
@@ -501,6 +514,8 @@ class FinFaktura(QtWidgets.QMainWindow):  #Ui_MainWindow): ## leser gui fra fakt
         s += "<p><i>Historikk</i>:<br>"
         logging.debug('linja har verdien %s, dato: %s', linje.ordre.ordredato, localtime(linje.ordre.ordredato))
         s += "Fakturert: %s<br>" % strftime("%Y-%m-%d", localtime(linje.ordre.ordredato))
+        assert linje.ordre is not None
+        assert linje.ordre.betalt is not None
         if linje.ordre.betalt > linje.ordre.forfall or \
             ( not linje.ordre.betalt and time() > linje.ordre.forfall ):
             s += "<font color=orange>Forfalt: %s</font><br>" % strftime("%Y-%m-%d", localtime(linje.ordre.forfall))
@@ -714,7 +729,7 @@ class FinFaktura(QtWidgets.QMainWindow):  #Ui_MainWindow): ## leser gui fra fakt
 
     def kundeContextMenu(self, event):
         try:
-            kunde = self.gui.kundeKundeliste.selectedItems()[0].kunde
+            kunde: finfaktura.fakturakomponenter.fakturaKunde = self.gui.kundeKundeliste.selectedItems()[0].kunde
         except IndexError:
             return None  # ingen kunde er valgt i lista
         meny = QtWidgets.QMenu(self)
@@ -965,9 +980,11 @@ class FinFaktura(QtWidgets.QMainWindow):  #Ui_MainWindow): ## leser gui fra fakt
             i(l)
 
     def redigerVare(self, linje=None, koord=None, kolonne=None):
+        logging.debug(f"redigerVare(linje={linje}, koord={koord}, kolonne={kolonne}")
         self.lastVare(self.gui.varerVareliste.currentItem().vare)
 
     def lastVare(self, vare=None):
+        logging.debug(f"lastVare(vare={vare})")
         self.denne_vare = vare
         enheter = self.faktura.hentEgenskapVerdier("Vare", "enhet")
         self.gui.varerInfoEnhet.clear()
@@ -1008,17 +1025,21 @@ class FinFaktura(QtWidgets.QMainWindow):  #Ui_MainWindow): ## leser gui fra fakt
             #self.gui.varerInfoPris:"Pris",
         }
         for obj in list(kravkart.keys()):
-            if isinstance(obj, (QtWidgets.QSpinBox, QtWidgets.QDoubleSpinBox)): test = obj.value() > 0.0
-            elif isinstance(obj, QtWidgets.QComboBox): test = obj.currentText()
-            elif isinstance(obj, QtWidgets.QLineEdit): test = obj.text()
-            elif isinstance(obj, QtWidgets.QPlainTextEdit): test = obj.toPlainText()
+            if isinstance(obj, (QtWidgets.QSpinBox, QtWidgets.QDoubleSpinBox)):
+                test = obj.value() > 0.0
+            elif isinstance(obj, QtWidgets.QComboBox):
+                test = obj.currentText()
+            elif isinstance(obj, QtWidgets.QLineEdit):
+                test = obj.text()
+            elif isinstance(obj, QtWidgets.QPlainTextEdit):
+                test = obj.toPlainText()
             if not test:
                 self.alert('Du er nødt til å oppgi %s' % (kravkart[obj].lower()))
                 obj.setFocus()
                 return False
 
         logging.debug("Vare er v=%s", v)
-        if v is None:
+        if not v:
             v = self.faktura.nyVare()
             logging.debug("Ny vare: %s", v)
         else:
@@ -1239,7 +1260,7 @@ class FinFaktura(QtWidgets.QMainWindow):  #Ui_MainWindow): ## leser gui fra fakt
             logging.debug('setter %s = %s', egenskap, repr(verdi))
             setattr(self.firma, egenskap, verdi)
 
-    def visTekstVindu(self, ressurs):
+    def visTekstVindu(self, ressurs: Union[Literal['om'], Literal['lisens']]):
         if ressurs == 'om':
             tittel = 'Om Fryktelig Fin Faktura, versjon %s' % finfaktura.__version__
             r = ':/data/README'
