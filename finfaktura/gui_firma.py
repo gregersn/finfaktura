@@ -12,7 +12,7 @@
 
 import logging
 from typing import Any, Dict, Union
-from PyQt6 import QtCore, QtGui, QtWidgets
+from qtpy import QtCore, QtGui, QtWidgets
 
 from finfaktura.fakturakomponenter import fakturaFirmainfo
 from .ui import firmainfo_ui

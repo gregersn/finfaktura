@@ -12,7 +12,7 @@
 from pathlib import Path
 import logging
 import subprocess
-from PyQt6 import QtCore, QtGui, QtWidgets
+from qtpy import QtCore, QtGui, QtWidgets
 
 PDFVIS = "/usr/bin/xdg-open"
 

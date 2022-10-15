@@ -11,7 +11,7 @@
 ###########################################################################
 
 import logging
-from PyQt6 import QtWidgets
+from qtpy import QtWidgets
 
 from finfaktura.fakturabibliotek import FakturaBibliotek
 from .ui import epost_ui

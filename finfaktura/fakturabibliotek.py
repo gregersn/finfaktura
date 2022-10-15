@@ -17,8 +17,8 @@ import logging
 from typing import Any, List, Optional, Union
 # import xml.etree.ElementTree  # help py2exe
 import sqlite3
-from PyQt6 import QtWidgets
-from PyQt6 import QtCore
+from qtpy import QtWidgets
+from qtpy import QtCore
 
 from . import fil
 from .fakturakomponenter import FakturaOppsett, fakturaEpost, fakturaFirmainfo, \

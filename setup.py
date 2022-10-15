@@ -54,7 +54,7 @@ setup(name="finfaktura",
       Vendor="solbu.net",
       license="GPL2",
       long_description=open(os.path.split(os.path.realpath(sys.argv[0]))[0] + "/intro").read(),
-      install_requires=['reportlab', 'PyQt6'],
+      install_requires=['reportlab', 'qtpy'],
       **extra
       #zip_safe=True,
       #include_package_data = True,

@@ -44,7 +44,7 @@ import finfaktura.rapport
 import finfaktura.fakturakomponenter
 import finfaktura.fil
 
-from PyQt6 import QtCore, QtGui, QtWidgets
+from qtpy import QtCore, QtGui, QtWidgets, QT_VERSION
 
 try:
     from finfaktura.ui.faktura_ui import Ui_FinFaktura
@@ -54,6 +54,8 @@ except ImportError as import_error:
     raise RessurserManglerFeil(import_error) from import_error
 
 PDFVIS = "/usr/bin/xdg-open"  # program for å vise PDF
+
+print(f"Using {QT_VERSION}")
 
 
 class FinFaktura(QtWidgets.QMainWindow):  #Ui_MainWindow): ## leser gui fra faktura_ui.py

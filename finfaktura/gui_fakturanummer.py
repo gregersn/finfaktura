@@ -21,8 +21,9 @@ import sqlite3
 
 from stat import ST_MTIME
 
-from PyQt6 import QtWidgets
-from PyQt6.uic import load_ui
+from qtpy import QtWidgets
+from qtpy.uic import loadUi
+
 #from ui import fakturanummer_ui
 
 

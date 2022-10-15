@@ -15,7 +15,7 @@ import os
 import logging
 import mimetypes
 import stat
-from PyQt6 import QtGui, QtWidgets
+from qtpy import QtGui, QtWidgets
 from .ui import sendepost_ui
 
 
