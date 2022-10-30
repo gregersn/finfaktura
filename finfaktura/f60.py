@@ -184,7 +184,7 @@ class F60:
                         kid: Optional[Union[str, bool]] = None,
                         levertEpoch: Optional[int] = None):
         """Sett vital info om fakturaen. Bruk kid=True for å generere kid ut i fra kundenr og fakturanr."""
-        self.faktura['nr'] = int(fakturanr)
+        self.faktura['nr'] = fakturanr
         self.faktura['utstedt'] = time.strftime(self.datoformat, time.localtime(utstedtEpoch))
         if levertEpoch is None:
             levertEpoch = utstedtEpoch  # vi vet ikke leveringsdato
@@ -227,7 +227,7 @@ class F60:
             self.firma[k] = self._s(info[k])
 
     def settKundeinfo(self, kundenr: int, adresse: str):
-        self.kunde['nr'] = int(kundenr)
+        self.kunde['nr'] = kundenr
         self.kunde['adresse'] = self._s(adresse)
 
     # ==================== OFFENTLIGE FUNKSJONER ================ #
@@ -315,8 +315,7 @@ class F60:
         r = 10 - (_sum % 10)
         if r == 10:
             return '0'
-        else:
-            return str(r)
+        return str(r)
 
     def lagKontrollsifferMod11(self, tallrekke: str):
         "Lager mod11 kontrollsiffer for en tallrekke. Returnerer en tekststreng"
@@ -329,9 +328,12 @@ class F60:
             _sum += j * (vekt + 2)
             vekt = (vekt + 1) % 5
         r = _sum % 11
-        if r == 1: return '-'
-        elif r == 0: return '0'
-        else: return str(11 - r)
+        if r == 1: 
+            return '-'
+        elif r == 0: 
+            return '0'
+        
+        return str(11 - r)
 
     def settBrukerbegrensning(self, passord: str = '', utskrift: int = 1, endringer: int = 0, kopieringer: int = 0, kommentarer: int = 1):
         """Begrenser hva som kan gjøres med PDF-fakturaen. Krever versjon 2.3 eller høyere av reportlab.
@@ -394,18 +396,17 @@ class F60:
 
     def _s(self, t: str):
         """Sørger for at tekst er i riktig kodesett (encoding)"""
-        if not isinstance(t, str): return t
         # Reportlab 2.x vil ha unicode
         if REPORTLAB2:
             try:
-                return str(t)
+                return t
             except UnicodeDecodeError:
-                return str(t, 'latin1')
+                return t.encode('latin1')
         else:  # Reportlab 1.x vil ha latin1/iso-8859-1
             try:
-                return str(t).encode('latin1')
+                return t
             except UnicodeDecodeError:
-                return str(t, 'latin1').encode('latin1')
+                return t.encode('latin1')
 
     def _kr(self, i: int):
         "Sørger for at et beløp skrives med riktig skilletegn og valuta. Returnerer tekst"

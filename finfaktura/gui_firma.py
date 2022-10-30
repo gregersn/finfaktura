@@ -14,14 +14,14 @@ import logging
 from typing import Any, Dict, Union
 from qtpy import QtCore, QtGui, QtWidgets
 
-from finfaktura.fakturakomponenter import fakturaFirmainfo
+from finfaktura.fakturakomponenter import FakturaFirmainfo
 from .ui import firmainfo_ui
 from .fakturabibliotek import typeofqt
 
 
 class FirmaOppsett(firmainfo_ui.Ui_firmaOppsett):
 
-    def __init__(self, firma: fakturaFirmainfo):
+    def __init__(self, firma: FakturaFirmainfo):
         self.firma = firma
         self.gui = QtWidgets.QDialog()
         self.setupUi(self.gui)
@@ -204,7 +204,7 @@ class FirmaOppsett(firmainfo_ui.Ui_firmaOppsett):
                 startdir,
                 'Bildefiler (*.png *.xpm *.jpg *.jpeg *.gif *.bmp *.ppm *.pgm *.pbm)',
             )
-            if len(str(logofile)) > 0:
+            if str(logofile):
                 logging.debug("Setter ny logo: %s", logofile)
 
                 logo = QtGui.QPixmap(logofile[0])

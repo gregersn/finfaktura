@@ -19,6 +19,7 @@
 #     dersom feltnavnet er None, blir det oversett (dette er bare fornuftig
 #     om tabellen har blitt fjernet eller gitt nytt navn
 
+from contextlib import suppress
 from pathlib import Path
 
 import sqlite3
@@ -310,14 +311,11 @@ class oppgrader:
 
     def rullTilbake(self, dbSti, dbBackup=None):
         "ruller tilbake til backup. dbBackup kan være stien til en gammel database, eller None for siste (basert på filnavn)"
-        try:
+        with suppress(BaseException):
             self.gmldb.close()
-        except:
-            pass
-        try:
+
+        with suppress(BaseException):
             self.nydb.close()
-        except:
-            pass
         if dbBackup is None:
             dbBackup = self.gammelDatabaseSti
         if not dbBackup:

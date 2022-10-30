@@ -70,7 +70,7 @@ class finfakturaOppsett(finfaktura_oppsett_ui.Ui_FinFakturaOppsett):
         startdir = nu
         ny = QtWidgets.QFileDialog.getExistingDirectory(self.gui, "Velg katalog fakturaene skal lagres i", startdir,
                                                         QtWidgets.QFileDialog.ShowDirsOnly)
-        if len(str(ny)) > 0:
+        if str(ny):
             logging.debug("Setter ny fakturakataolg: %s" % ny)
             self.faktura.oppsett.fakturakatalog = str(ny)
             self.oppsettFakturakatalog.setText(str(ny))

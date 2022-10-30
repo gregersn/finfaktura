@@ -21,8 +21,8 @@ from qtpy import QtWidgets
 from qtpy import QtCore
 
 from . import fil
-from .fakturakomponenter import FakturaOppsett, fakturaEpost, fakturaFirmainfo, \
-        fakturaOrdre, fakturaVare, fakturaKunde, fakturaSikkerhetskopi
+from .fakturakomponenter import FakturaOppsett, FakturaEpost, FakturaFirmainfo, \
+        FakturaOrdre, FakturaVare, FakturaKunde, FakturaSikkerhetskopi
 
 from .fakturafeil import DBVersjonFeil, FakturaFeil, KundeFeil, PDFFeil, SikkerhetskopiFeil
 
@@ -46,45 +46,46 @@ class FakturaBibliotek:
         self.__firmainfo = None
         self.oppsett = FakturaOppsett(db, versjonsjekk=sjekkVersjon, apiversjon=DATABASEVERSJON)
         try:
-            self.epostoppsett = fakturaEpost(db)
+            self.epostoppsett = FakturaEpost(db)
         except sqlite3.DatabaseError as e:
             if "no such table" in str(e).lower(): self.epostoppsett = None  ## for gammel versjon
             else: raise
 
     def versjon(self):
         v = self.oppsett.hentVersjon()
-        if v is None: return 2.0  # før versjonsnummeret kom inn i db
-        else: return v
+        if v is None: 
+            return 2.0  # før versjonsnummeret kom inn i db
+        return v
 
     def hentKunde(self, kundeID: int):
         #assert(type(kundeID
-        return fakturaKunde(self.db, kundeID)
+        return FakturaKunde(self.db, kundeID)
 
     def hentKunder(self, inkluderSlettede: bool = False):
-        sql = "SELECT ID FROM %s" % fakturaKunde.tabellnavn
+        sql = "SELECT ID FROM %s" % FakturaKunde.tabellnavn
         if not inkluderSlettede: sql += " WHERE slettet IS NULL OR slettet = 0"
         self.c.execute(sql)
-        return [fakturaKunde(self.db, z[0]) for z in self.c.fetchall()]
+        return [FakturaKunde(self.db, z[0]) for z in self.c.fetchall()]
 
     def nyKunde(self):
-        return fakturaKunde(self.db)
+        return FakturaKunde(self.db)
 
     def hentVarer(self, inkluderSlettede: bool = False, sorterEtterKunde: bool = False):
-        sql = "SELECT ID FROM %s" % fakturaVare.tabellnavn
+        sql = "SELECT ID FROM %s" % FakturaVare.tabellnavn
         if not inkluderSlettede: sql += " WHERE slettet IS NULL OR slettet = 0"
         if sorterEtterKunde:
             sql += " ORDER BY kunde"
         self.c.execute(sql)
-        return [fakturaVare(self.db, z[0]) for z in self.c.fetchall()]
+        return [FakturaVare(self.db, z[0]) for z in self.c.fetchall()]
 
     def nyVare(self):
-        return fakturaVare(self.db)
+        return FakturaVare(self.db)
 
     def hentVare(self, Id: Optional[int]):
-        return fakturaVare(self.db, Id)
+        return FakturaVare(self.db, Id)
 
     def finnVareEllerLagNy(self, navn: str, pris: float, mva: int, enhet: str):
-        sql = "SELECT ID FROM %s" % fakturaVare.tabellnavn
+        sql = "SELECT ID FROM %s" % FakturaVare.tabellnavn
         sql += " WHERE navn=? AND pris=? AND mva=?"
         #print sql, navn, pris, mva
         self.c.execute(sql, (
@@ -93,7 +94,7 @@ class FakturaBibliotek:
             mva,
         ))
         try:
-            return fakturaVare(self.db, self.c.fetchone()[0])
+            return FakturaVare(self.db, self.c.fetchone()[0])
         except TypeError:
             # varen finnes ikke, lag ny og returner
             vare = self.nyVare()
@@ -104,48 +105,48 @@ class FakturaBibliotek:
             return vare
 
     def nyOrdre(self,
-                kunde: Optional[fakturaKunde] = None,
+                kunde: Optional[FakturaKunde] = None,
                 Id: Optional[int] = None,
                 ordredato: Optional[int] = None,
                 forfall: Optional[int] = None):
-        return fakturaOrdre(self.db, kunde=kunde, Id=Id, firma=self.firmainfo(), dato=ordredato, forfall=forfall)
+        return FakturaOrdre(self.db, kunde=kunde, Id=Id, firma=self.firmainfo(), dato=ordredato, forfall=forfall)
 
     def hentOrdrer(self):
-        self.c.execute("SELECT ID FROM %s" % fakturaOrdre.tabellnavn)
-        return [fakturaOrdre(self.db, Id=z[0]) for z in self.c.fetchall()]
+        self.c.execute("SELECT ID FROM %s" % FakturaOrdre.tabellnavn)
+        return [FakturaOrdre(self.db, Id=z[0]) for z in self.c.fetchall()]
 
     def firmainfo(self):
         if self.__firmainfo is not None:
-            self.__firmainfo.hentEgenskaper()
+            self.__firmainfo.hent_egenskaper()
             self.__firmainfo.sjekkData()
         else:
-            self.__firmainfo = fakturaFirmainfo(self.db)
+            self.__firmainfo = FakturaFirmainfo(self.db)
         return self.__firmainfo
 
     def hentEgenskapVerdier(self, tabell: str, egenskap: str):
         self.c.execute("SELECT DISTINCT %s FROM %s" % (egenskap, tabell))
         return [str(x[0]) for x in self.c.fetchall() if x[0]]
 
-    def lagSikkerhetskopi(self, ordre: fakturaOrdre):
-        s = fakturaSikkerhetskopi(self.db, ordre)
+    def lagSikkerhetskopi(self, ordre: FakturaOrdre):
+        s = FakturaSikkerhetskopi(self.db, ordre)
         #historikk.pdfSikkerhetskopi(ordre, True, "lagSikkerhetskopi)")
         return s
 
     def hentSikkerhetskopier(self):
-        self.c.execute("SELECT ID FROM %s" % fakturaSikkerhetskopi.tabellnavn)
-        return [fakturaSikkerhetskopi(self.db, Id=z[0]) for z in self.c.fetchall()]
+        self.c.execute("SELECT ID FROM %s" % FakturaSikkerhetskopi.tabellnavn)
+        return [FakturaSikkerhetskopi(self.db, Id=z[0]) for z in self.c.fetchall()]
 
     def sjekkSikkerhetskopier(self, lagNyAutomatisk: bool = False):
         sql = "SELECT Ordrehode.ID, Sikkerhetskopi.ID FROM Ordrehode LEFT OUTER JOIN Sikkerhetskopi ON Ordrehode.ID=Sikkerhetskopi.ordreID WHERE data IS NULL"
         self.c.execute(sql)
-        ordrer: List[fakturaOrdre] = []
+        ordrer: List[FakturaOrdre] = []
         for z in self.c.fetchall():
             logging.debug("Ordre #%i har ingen gyldig sikkerhetskopi!", z[0])
-            o = fakturaOrdre(self.db, Id=z[0], firma=self.firmainfo())
+            o = FakturaOrdre(self.db, Id=z[0], firma=self.firmainfo())
             if lagNyAutomatisk:
                 # merk evt. gammel sikkerhetskopi som ugyldig
                 if z[1]:
-                    s = fakturaSikkerhetskopi(self.db, Id=z[1])
+                    s = FakturaSikkerhetskopi(self.db, Id=z[1])
                     s.data = None
                 try:
                     self.lagSikkerhetskopi(o)
@@ -157,7 +158,7 @@ class FakturaBibliotek:
                 ordrer.append(o)
         return ordrer
 
-    def lagPDF(self, ordre: fakturaOrdre, blankettType: str, _filnavn: Optional[str] = None):
+    def lagPDF(self, ordre: FakturaOrdre, blankettType: str, _filnavn: Optional[str] = None):
         if not REPORTLAB:
             raise PDFFeil('Modulen "reportlab" er ikke installert. Uten denne kan du ikke lage pdf-fakturaer.')
 
@@ -190,7 +191,7 @@ class FakturaBibliotek:
     def skrivUt(self, filnavn: Path):
         return fil.vis(filnavn)
 
-    def sendEpost(self, ordre: fakturaOrdre, pdf, tekst: Optional[str] = None, transport: Union[str, int] = 'auto'):
+    def sendEpost(self, ordre: FakturaOrdre, pdf, tekst: Optional[str] = None, transport: Union[str, int] = 'auto'):
         if isinstance(transport, int):
             transport = epost.TRANSPORTMETODER[transport]
         if transport == 'auto':

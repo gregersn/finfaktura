@@ -19,7 +19,7 @@ from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.lib.pagesizes import A4
 from reportlab.platypus import Paragraph, SimpleDocTemplate
 
-from finfaktura.fakturakomponenter import fakturaOrdre
+from finfaktura.fakturakomponenter import FakturaOrdre
 
 from . import fakturafeil, fil
 
@@ -78,11 +78,11 @@ class rapport:
             self.lag()
         return fil.vis(self.filnavn)
 
-    def lastOrdreliste(self, ordreliste: List[fakturaOrdre]):
+    def lastOrdreliste(self, ordreliste: List[FakturaOrdre]):
         for o in ordreliste:
             self.leggTilOrdre(o)
 
-    def leggTilOrdre(self, ordre: fakturaOrdre):
+    def leggTilOrdre(self, ordre: FakturaOrdre):
         self.oppdatert = False
         status = ""
         if self.info['sortering'] is not None:

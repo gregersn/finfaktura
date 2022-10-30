@@ -21,10 +21,10 @@ class fakturaHandling(fakturakomponenter.FakturaKomponent):  #(fakturabibliotek.
         self.db = db
         self.navn = navn
         if Id is None:
-            Id = self.nyId()
+            Id = self.ny_id()
         self._id = Id
 
-    def nyId(self):
+    def ny_id(self):
         self.c.execute("INSERT INTO %s (ID, navn) VALUES (NULL, ?)" % self.tabellnavn, (self.navn, ))
         self.db.commit()
         return self.c.lastrowid
@@ -58,8 +58,8 @@ class HistoriskHandling:
                        (self.ordreID, self.dato, self.handlingID, (self.suksess and 1) or 0, self.forklaring))
         self.db.commit()
 
-    def __init__(self, ordre: fakturakomponenter.fakturaOrdre, suksess: int, forklaring: Optional[str] = None):
-        assert isinstance(ordre, fakturakomponenter.fakturaOrdre)  #fakturabibliotek.fakturaOrdre)
+    def __init__(self, ordre: fakturakomponenter.FakturaOrdre, suksess: int, forklaring: Optional[str] = None):
+        assert isinstance(ordre, fakturakomponenter.FakturaOrdre)  #fakturabibliotek.fakturaOrdre)
         self.db = ordre.db
         self.c = self.db.cursor()
         self.ordreID = ordre.ID

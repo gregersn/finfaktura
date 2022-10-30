@@ -12,7 +12,7 @@
 import logging
 import sqlite3
 from typing import List, Optional
-from .fakturakomponenter import fakturaKunde, fakturaOrdre, fakturaVare
+from .fakturakomponenter import FakturaKunde, FakturaOrdre, FakturaVare
 
 
 class OrdreHenter:
@@ -38,10 +38,10 @@ class OrdreHenter:
         if tilEpoch is not None:
             self.begrens.append(f" ordredato < {tilEpoch}")
 
-    def begrensKunde(self, kunde: fakturaKunde):
+    def begrensKunde(self, kunde: FakturaKunde):
         self.begrens.append(f" kundeID = {kunde.id} ")
 
-    def begrensVare(self, vare: fakturaVare):
+    def begrensVare(self, vare: FakturaVare):
         if vare.id:
             self.vare = True
             self.varer.append(vare.id)
@@ -65,10 +65,10 @@ class OrdreHenter:
 
     def hentOrdrer(self):
         self.c.execute(self._sql())
-        return [fakturaOrdre(self.db, Id=z[0]) for z in self.c.fetchall()]
+        return [FakturaOrdre(self.db, Id=z[0]) for z in self.c.fetchall()]
 
     def _sql(self):
-        s = f"SELECT Ordrehode.ID FROM {fakturaOrdre.tabellnavn}"
+        s = f"SELECT Ordrehode.ID FROM {FakturaOrdre.tabellnavn}"
         if self.vare:
             # SELECT Ordrehode.ID FROM Ordrehode LEFT OUTER JOIN Ordrelinje ON Ordrehode.ID=Ordrelinje.ordrehodeID WHERE vareID=3;
             s += " LEFT OUTER JOIN Ordrelinje ON Ordrehode.ID=Ordrelinje.ordrehodeID "

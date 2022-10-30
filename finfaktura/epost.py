@@ -21,7 +21,7 @@ from email.header import Header
 import socket
 from typing import Any, List, Literal, Optional, Tuple, Union
 
-from finfaktura.fakturakomponenter import fakturaOrdre
+from finfaktura.fakturakomponenter import FakturaOrdre
 
 TRANSPORTMETODER = ['auto', 'smtp', 'sendmail']
 
@@ -49,7 +49,7 @@ class Epost:
     transport: str
 
     def faktura(self,
-                ordre: fakturaOrdre,
+                ordre: FakturaOrdre,
                 pdfFilnavn: str,
                 tekst: Optional[str] = None,
                 fra: Optional[str] = None,
@@ -147,8 +147,8 @@ class Epost:
         elif isinstance(f, BufferedReader):
             self.vedlegg.append(('noname', f.read()))
             return True
-        else:
-            return False
+
+        return False
 
 
 class SMTP(Epost):
@@ -162,8 +162,8 @@ class SMTP(Epost):
             raise UgyldigVerdi('smtpserver skal være tekst (ikke "%s")' % type(smtpserver))
         if not type(port) == int:
             raise UgyldigVerdi('port skal være et heltall (ikke "%s")' % type(port))
-        self.smtpserver = str(smtpserver)
-        self.smtpport = int(port)
+        self.smtpserver = smtpserver
+        self.smtpport = port
 
     def tls(self, _bool: bool):
         if not type(_bool) == bool:

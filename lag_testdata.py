@@ -33,13 +33,13 @@ if __name__ == "__main__":
     ordrer = []
 
     try:
-        firma = fakturaFirmainfo(cx)
+        firma = FakturaFirmainfo(cx)
     except Exception as xxx_todo_changeme:
         (e) = xxx_todo_changeme
         print(e)
         if 'no such table' in e.message:
             byggDatabase(cx, 'faktura.sql')
-            firma = fakturaFirmainfo(cx)
+            firma = FakturaFirmainfo(cx)
 
     firma.firmanavn = 'Testefirma'
     firma.kontaktperson = 'Testekontakt for firma'
@@ -53,7 +53,7 @@ if __name__ == "__main__":
     firma.epost = 'firma@localhost'
 
     for iv in range(ANTALL_VARER):
-        v = fakturaVare(cx)
+        v = FakturaVare(cx)
         v.navn = 'Testvare %i ÆØÅ' % (iv + 1)
         v.detaljer = 'Denne varen er nr %i av %i' % (iv + 1, ANTALL_VARER)
         v.enhet = 'stk'
@@ -62,7 +62,7 @@ if __name__ == "__main__":
         varer.append(v)
 
     for ik in range(ANTALL_KUNDER):
-        k = fakturaKunde(cx)
+        k = FakturaKunde(cx)
         k.navn = 'Testkunde %i ÆØÅ' % (ik + 1)
         k.kontaktperson = 'Testkontakt %i ÆØÅ' % (ik + 1)
         k.adresse = 'Adresse 1\nAdresse 2'
@@ -74,9 +74,9 @@ if __name__ == "__main__":
             # lag en tilfeldig dato mellom 2008-01-01 og nå
             ordredato = random.randrange(1199142000, int(time()), 3600)
             logging.debug('tilfeldig dato: %s', ordredato)
-            f = fakturaOrdre(cx, kunde=k, firma=firma, dato=ordredato)
+            f = FakturaOrdre(cx, kunde=k, firma=firma, dato=ordredato)
             f.tekst = 'Testfaktura %i-%i ÆØÅ' % (ik + 1, iif + 1)
-            vare = fakturaVare(cx, random.randint(1, ANTALL_VARER))
+            vare = FakturaVare(cx, random.randint(1, ANTALL_VARER))
             f.leggTilVare(vare, random.randint(1, 10), vare.pris, 25)
             f.betalt = random.choice([0, ordredato + 7200])
 

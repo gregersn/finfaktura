@@ -10,6 +10,7 @@
 #
 ###########################################################################
 
+from contextlib import suppress
 from pathlib import Path
 import sqlite3
 import sys
@@ -64,7 +65,7 @@ class FinFaktura(QtWidgets.QMainWindow):  #Ui_MainWindow): ## leser gui fra fakt
     denne_kunde = None
     denne_vare = None
     gammelTab = 0
-    firma: finfaktura.fakturakomponenter.fakturaFirmainfo
+    firma: finfaktura.fakturakomponenter.FakturaFirmainfo
 
     def __init__(self):
         QtWidgets.QMainWindow.__init__(self)
@@ -235,7 +236,7 @@ class FinFaktura(QtWidgets.QMainWindow):  #Ui_MainWindow): ## leser gui fra fakt
 
     def fakturaContextMenu(self, event: QtGui.QContextMenuEvent):
         try:
-            ordre: finfaktura.fakturakomponenter.fakturaOrdre = self.gui.fakturaFakturaliste.selectedItems()[0].ordre
+            ordre: finfaktura.fakturakomponenter.FakturaOrdre = self.gui.fakturaFakturaliste.selectedItems()[0].ordre
         except IndexError:
             return None  #ingen ordre er valgt
         meny = QtWidgets.QMenu(self)
@@ -292,7 +293,7 @@ class FinFaktura(QtWidgets.QMainWindow):  #Ui_MainWindow): ## leser gui fra fakt
 
     def nyFakturaFraKunde(self):
         try:
-            kunde: finfaktura.fakturakomponenter.fakturaKunde = self.gui.kundeKundeliste.selectedItems()[0].kunde
+            kunde: finfaktura.fakturakomponenter.FakturaKunde = self.gui.kundeKundeliste.selectedItems()[0].kunde
         except IndexError:
             self.alert('Ingen kunde er valgt')
             return False
@@ -305,7 +306,7 @@ class FinFaktura(QtWidgets.QMainWindow):  #Ui_MainWindow): ## leser gui fra fakt
 #     kunde = self.faktura.hentKunde(kundeID)
 #     self.nyFaktura(kunde)
 
-    def nyFaktura(self, kunde: Optional[finfaktura.fakturakomponenter.fakturaKunde] = None, ordrelinje: Optional[int] = None):
+    def nyFaktura(self, kunde: Optional[finfaktura.fakturakomponenter.FakturaKunde] = None, ordrelinje: Optional[int] = None):
         logging.debug("nyFaktura(kune=%s, ordrelinje=%s", kunde, ordrelinje)
         # sjekk at firmainfo er fullstendig utfylt (så feiler vi ikke senere)
         try:
@@ -350,7 +351,7 @@ class FinFaktura(QtWidgets.QMainWindow):  #Ui_MainWindow): ## leser gui fra fakt
     def leggTilFaktura(self):
         #legg inn faktura i registeret
         #er all nødvendig info samlet inn?
-        if not len(str(self.gui.fakturaFaktaTekst.toPlainText())) and \
+        if not str(self.gui.fakturaFaktaTekst.toPlainText()) and \
             not self.JaNei("Vil du virkelig legge inn fakturaen uten fakturatekst?"):
             self.gui.fakturaFaktaTekst.setFocus()
             return False
@@ -402,12 +403,10 @@ class FinFaktura(QtWidgets.QMainWindow):  #Ui_MainWindow): ## leser gui fra fakt
         self.faktura.lagSikkerhetskopi(f)
         self.gui.fakturaFakta.hide()
         self.visFaktura()  # oppdater listen slik at den nye fakturaen blir med
-        try:
+        with suppress(IndexError):
             # velg den nye fakturaen - søk etter den nye fakturaens ID i lista
             nylinje = self.gui.fakturaFakturaliste.findItems("%06d" % f.ID, QtCore.Qt.MatchFlag.MatchExactly, 0)[0]
             self.gui.fakturaFakturaliste.setCurrentItem(nylinje)
-        except IndexError:
-            pass
 
         #skal vi lage blanketter nå?
         s = 'Den nye fakturaen er laget. Vil du lage tilhørende blankett nå?'
@@ -509,7 +508,7 @@ class FinFaktura(QtWidgets.QMainWindow):  #Ui_MainWindow): ## leser gui fra fakt
                 mva += _pris * _antall * _mva / 100
             self.gui.fakturaFaktaSum.setText("<u>%.2fkr (+%.2fkr mva)</u>" % (p, mva))
 
-    def visFakturadetaljer(self, linje: finfaktura.fakturakomponenter.fakturaOrdrelinje):
+    def visFakturadetaljer(self, linje: finfaktura.fakturakomponenter.FakturaOrdrelinje):
         if linje is None:
             self.gui.fakturaDetaljerTekst.setText('')
             self.gui.fakturaHandlinger.setEnabled(False)
@@ -570,9 +569,9 @@ class FinFaktura(QtWidgets.QMainWindow):  #Ui_MainWindow): ## leser gui fra fakt
     def lagFakturaPapir(self):
         return self.lagFaktura(Type='papir')
 
-    def lagFaktura(self, Type="epost"):
+    def lagFaktura(self, Type: str="epost"):
         try:
-            ordre: finfaktura.fakturakomponenter.fakturaOrdre = self.gui.fakturaFakturaliste.selectedItems()[0].ordre
+            ordre: finfaktura.fakturakomponenter.FakturaOrdre = self.gui.fakturaFakturaliste.selectedItems()[0].ordre
         except IndexError:
             self.alert('Ingen faktura er valgt')
             return False
@@ -691,7 +690,7 @@ class FinFaktura(QtWidgets.QMainWindow):  #Ui_MainWindow): ## leser gui fra fakt
 
     def avkansellerFaktura(self):
         try:
-            ordre: finfaktura.fakturakomponenter.fakturaOrdre = self.gui.fakturaFakturaliste.selectedItems()[0].ordre
+            ordre: finfaktura.fakturakomponenter.FakturaOrdre = self.gui.fakturaFakturaliste.selectedItems()[0].ordre
         except IndexError:
             self.alert("Ingen faktura er valgt")
             return
@@ -701,7 +700,7 @@ class FinFaktura(QtWidgets.QMainWindow):  #Ui_MainWindow): ## leser gui fra fakt
 
     def purrFaktura(self):
         try:
-            ordre: finfaktura.fakturakomponenter.fakturaOrdre = self.gui.fakturaFakturaliste.selectedItems()[0].ordre
+            ordre: finfaktura.fakturakomponenter.FakturaOrdre = self.gui.fakturaFakturaliste.selectedItems()[0].ordre
         except IndexError:
             self.alert("Ingen faktura er valgt")
             return
@@ -709,19 +708,19 @@ class FinFaktura(QtWidgets.QMainWindow):  #Ui_MainWindow): ## leser gui fra fakt
 
     def inkassoFaktura(self):
         try:
-            ordre: finfaktura.fakturakomponenter.fakturaOrdre = self.gui.fakturaFakturaliste.selectedItems()[0].ordre
+            ordre: finfaktura.fakturakomponenter.FakturaOrdre = self.gui.fakturaFakturaliste.selectedItems()[0].ordre
         except IndexError:
             self.alert("Ingen faktura er valgt")
             return
         historikk.sendtTilInkasso(ordre, True, 'brukerklikk')
 
-    def visEpostfaktura(self, ordre: finfaktura.fakturakomponenter.fakturaOrdre, pdfFilnavn: Path):
+    def visEpostfaktura(self, ordre: finfaktura.fakturakomponenter.FakturaOrdre, pdfFilnavn: Path):
         epostboks = gui_sendepost.sendEpost(self, ordre)
         res, tekst = epostboks.exec()
         if res == QtWidgets.QDialog.DialogCode.Accepted:
             return self.sendEpostfaktura(ordre, tekst, pdfFilnavn)
 
-    def sendEpostfaktura(self, ordre: finfaktura.fakturakomponenter.fakturaOrdre, tekst: str, filnavn: Path):
+    def sendEpostfaktura(self, ordre: finfaktura.fakturakomponenter.FakturaOrdre, tekst: str, filnavn: Path):
         try:
             logging.debug('sender epostfaktura: ordre # %i, til: %s', ordre._id, ordre.kunde.epost)
             assert self.faktura.epostoppsett is not None
@@ -744,7 +743,7 @@ class FinFaktura(QtWidgets.QMainWindow):  #Ui_MainWindow): ## leser gui fra fakt
 
     def kundeContextMenu(self, event):
         try:
-            kunde: finfaktura.fakturakomponenter.fakturaKunde = self.gui.kundeKundeliste.selectedItems()[0].kunde
+            kunde: finfaktura.fakturakomponenter.FakturaKunde = self.gui.kundeKundeliste.selectedItems()[0].kunde
         except IndexError:
             return None  # ingen kunde er valgt i lista
         meny = QtWidgets.QMenu(self)
@@ -777,10 +776,10 @@ class FinFaktura(QtWidgets.QMainWindow):  #Ui_MainWindow): ## leser gui fra fakt
             i(l)
 
     def redigerKunde(self, *kw):
-        kunde: finfaktura.fakturakomponenter.fakturaKunde = self.gui.kundeKundeliste.currentItem().kunde
+        kunde: finfaktura.fakturakomponenter.FakturaKunde = self.gui.kundeKundeliste.currentItem().kunde
         self.lastKunde(kunde)
 
-    def lastKunde(self, kunde: Optional[finfaktura.fakturakomponenter.fakturaKunde] = None):
+    def lastKunde(self, kunde: Optional[finfaktura.fakturakomponenter.FakturaKunde] = None):
         self.denne_kunde = kunde
         statuser = self.faktura.hentEgenskapVerdier("Kunde", "status")
         self.gui.kundeInfoStatus.clear()

@@ -25,7 +25,7 @@ if __name__ == "__main__":
 
     cx = sqlite3.connect(finnDatabasenavn())
     if "kunde" in test:
-        kunde = fakturaKunde(cx)
+        kunde = FakturaKunde(cx)
         kunde.navn = "Havard Gulldahl"
         kunde.epost = "havard@lurtgjort.no"
         print("kunde:", kunde)
@@ -33,18 +33,18 @@ if __name__ == "__main__":
         b = FakturaBibliotek(cx)
         pprint(b.hentKunder())
     if "vare" in test:
-        v = fakturaVare(cx)
+        v = FakturaVare(cx)
         v.navn = "2-sider Linuxmagasinet"
         v.detaljer = "Tekst som går over to sider"
         v.enhet = "stk"
         v.pris = 2500
         print("vare:", v)
     if "nyfaktura" in test:
-        _kunde = fakturaKunde(cx, 1)
-        _firma = fakturaFirmainfo(cx)
-        f = fakturaOrdre(cx, kunde=_kunde, firma=_firma)
+        _kunde = FakturaKunde(cx, 1)
+        _firma = FakturaFirmainfo(cx)
+        f = FakturaOrdre(cx, kunde=_kunde, firma=_firma)
         f.tekst = "råtøff vask"
-        v = fakturaVare(cx, 1)
+        v = FakturaVare(cx, 1)
         f.leggTilVare(v, 4, 2500, 12)
         #v2 = fakturaVare(cx, 3)
         #f.leggTilVare(v2, 1, 2000, 24)
@@ -53,8 +53,8 @@ if __name__ == "__main__":
         pdf = b.lagPDF(f, "epost")
         print("pdf:", pdf.filnavn)
     if "pdf" in test:
-        _firma = fakturaFirmainfo(cx)
-        f = fakturaOrdre(cx, Id=3, firma=_firma)
+        _firma = FakturaFirmainfo(cx)
+        f = FakturaOrdre(cx, Id=3, firma=_firma)
         b = FakturaBibliotek(cx)
         pdf = b.lagPDF(f, "epost")
         print("pdf:", pdf.filnavn)
@@ -64,17 +64,17 @@ if __name__ == "__main__":
         for z in b.hentOrdrer():
             print(z)
     if "firma" in test:
-        f = fakturaFirmainfo(cx)
+        f = FakturaFirmainfo(cx)
         print(f.__str__())
         print(f.firmanavn)
 
     if "oppdater" in test:
-        f = fakturaFirmainfo(cx)
+        f = FakturaFirmainfo(cx)
         f.firmanavn = 'Hålåxx'
         print(f.firmanavn)
 
     if "firmalogo" in test:
-        f = fakturaFirmainfo(cx)
+        f = FakturaFirmainfo(cx)
         print("firmalogo:", type(f.logo))
         #out = file("/tmp/firmalogo.gif", "w")
         #out.write(f.logo)
@@ -100,8 +100,8 @@ if __name__ == "__main__":
                 f.close()
             print("sikkerhetskopi#%i av faktura # %s dumpet til %s" % (kopi.id, kopi.ordreID, fil))
     if "epost" in test:
-        _firma = fakturaFirmainfo(cx)
-        f = fakturaOrdre(cx, Id=1, firma=_firma)
+        _firma = FakturaFirmainfo(cx)
+        f = FakturaOrdre(cx, Id=1, firma=_firma)
         b = FakturaBibliotek(cx)
         pdf = b.lagPDF(f, "epost")
         print("pdf:", pdf.filnavn)
@@ -116,7 +116,7 @@ if __name__ == "__main__":
 
     if "dbtest" in test:
         print("tester om %s er en sqlite-database" % sys.argv[2])
-        print(sjekkDatabaseVersjon(sys.argv[2]))
+        print(sjekkDatabaseVersjon(Path(sys.argv[2])))
 
     if "kid" in test:
         print("tester kid-funksjoner i f60")
