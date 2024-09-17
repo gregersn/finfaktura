@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 # kate: indent-width 4;
 ###########################################################################
@@ -25,12 +25,12 @@ if __name__ == "__main__":
     if DEBUG:
         logging.basicConfig(level=logging.DEBUG)
     if "-h" in sys.argv[1:]:
-        print __doc__
-        print "Bruk %s -i for å lage kommandolinjefaktura" % sys.argv[0]
+        print(__doc__)
+        print("Bruk %s -i for å lage kommandolinjefaktura" % sys.argv[0])
         sys.exit()
     elif '-v' in sys.argv[1:]:
         import finfaktura
-        print finfaktura.__version__
+        print(finfaktura.__version__)
     elif "-i" in sys.argv[1:]:
         #interactive"
         from finfaktura.cli import cli_faktura
@@ -39,17 +39,17 @@ if __name__ == "__main__":
         try:
             import finfaktura.gui
             sys.exit(finfaktura.gui.start())
-        except RessurserManglerFeil, (e):
-            print e
-            print "Feil! Ressursene er ikke generert (det må \ndu gjøre dersom du sjekker ut fra Git selv)"
-            print "Lager ressursene. Ta en titt på \nscripts/forbered_ressurser.sh eller \nfinfaktura/ekstra.py for detaljer"
+        except RessurserManglerFeil as e:
+            print(e)
+            print("Feil! Ressursene er ikke generert (det må \ndu gjøre dersom du sjekker ut fra Git selv)")
+            print("Lager ressursene. Ta en titt på \nscripts/forbered_ressurser.sh eller \nfinfaktura/ekstra.py for detaljer")
             from finfaktura.ekstra import forbered_ressurser
             forbered_ressurser()
-        except ImportError, (e):
-            print "OOPS! Problemer med å laste moduler (bruk -d for å vise feilmelding)"
+        except ImportError as e:
+            print("OOPS! Problemer med å laste moduler (bruk -d for å vise feilmelding)")
             if DEBUG:
                 logging.exception(e)
-            print "Faller tilbake til konsollmodus ..."
-            print
+            print("Faller tilbake til konsollmodus ...")
+            print("")
             from finfaktura.cli import cli_faktura
             cli_faktura()

@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python3
 # -*- coding:utf-8 -*-
 """cli-magi"""
 ###########################################################################
@@ -10,15 +10,20 @@
 # $Id$
 ###########################################################################
 
+import os
+from pathlib import Path
 import sys
-from fakturabibliotek import FakturaBibliotek, kobleTilDatabase
+from typing import Any, List, Optional
+from .fakturabibliotek import FakturaBibliotek, kobleTilDatabase
+
 
 def cli_faktura():
     db = kobleTilDatabase()
+    assert db is not None
     bib = FakturaBibliotek(db)
     kunder = bib.hentKunder()
     kunde = CLIListe(kunder, "velg kunde: ")
-    print "kunde: ", unicode(kunde)
+    print("kunde: ", str(kunde))
     varer = bib.hentVarer()
     vare = CLIListe(varer, "velg vare: ")
     antall = ""
@@ -28,15 +33,15 @@ def cli_faktura():
     tekst = CLIInput("Fakturatekst: ")
     mva = vare.mva * vare.pris * antall / 100
     sum = vare.pris * antall + mva
-    print u"""STEMMER DETTE?
+    print("""STEMMER DETTE?
     =====
     Kunde: %s
     Vare: %s %s %s
     Tekst: %s
     SUM: %.2f kr (derav mva: %.2f)
-    ===== """ % (kunde, antall, vare.enhet, vare, tekst, sum, mva)
+    ===== """ % (kunde, antall, vare.enhet, vare, tekst, sum, mva))
     ja = CLIInput("NEI/ja (Enter for å avbryte): ")
-    if not(len(ja) > 0 and ja.strip().lower()[0] == "j"):
+    if not (len(ja) > 0 and ja.strip().lower()[0] == "j"):
         return False
     firma = bib.firmainfo()
     ordre = bib.nyOrdre(kunde)
@@ -44,45 +49,44 @@ def cli_faktura():
     ordre.leggTilVare(vare, antall, vare.pris, vare.mva)
     bib.lagSikkerhetskopi(ordre)
 
-    fakturanavn = ordre.lagFilnavn(bib.oppsett.fakturakatalog, fakturatype="epost")
+    fakturanavn = ordre.lagFilnavn(Path(bib.oppsett.fakturakatalog), fakturatype="epost")
 
     try:
         pdf = bib.lagPDF(ordre, "epost", fakturanavn)
-    except FakturaFeil,(E):
-        print u"OUCH! Kunne ikke lage PDF! Årsak: %s" % E
-    except KundeFeil,(E):
-        print u"OUCH! Kunne ikke lage PDF! Årsak: %s" % E
+    except FakturaFeil as xxx_todo_changeme:
+        (E) = xxx_todo_changeme
+        print("OUCH! Kunne ikke lage PDF! Årsak: %s" % E)
+    except KundeFeil as xxx_todo_changeme1:
+        (E) = xxx_todo_changeme1
+        print("OUCH! Kunne ikke lage PDF! Årsak: %s" % E)
 
-    print "Lagde pdf: %s" % pdf.filnavn
+    print("Lagde pdf: %s" % pdf.filnavn)
     db.close()
-
 
 
 def CLIenkoding():
     "Prøver å finne den gjeldende enkodingen på input"
-    import os
-    for z in ('LANG','LC_CTYPE','LC_ALL'):
-        if os.environ.has_key(z):
+    for z in ('LANG', 'LC_CTYPE', 'LC_ALL'):
+        if z in os.environ:
             k = os.environ[z].lower()
             if k.find('utf8') != -1 or k.find('utf-8') != -1: return 'utf8'
     return 'latin1'
 
-def CLIListe(liste, tekst=None):
-    from pprint import pprint
+
+def CLIListe(liste: List[Any], tekst: Optional[str] = None):
     if not tekst:
-        tekst = "velg blant %s:" % len(liste)
+        tekst = f"velg blant {len(liste)}:"
     try:
-        print "velg fra liste (%s valg):" % len(liste)
+        print(f"velg fra liste ({len(liste)} valg):")
         i = 1
         for l in liste:
-            print "\t", i, unicode(l)
+            print("\t", i, str(l))
             i += 1
-        ret = raw_input(tekst)
+        ret = input(tekst)
     except EOFError:
         return CLIListe(liste)
     except KeyboardInterrupt:
-        import sys
-        print
+        print()
         sys.exit(1)
     else:
         if (not ret.isdigit()) or (int(ret) < 1 or int(ret) > len(liste)):
@@ -91,14 +95,14 @@ def CLIListe(liste, tekst=None):
             idx = int(ret) - 1
             return liste[idx]
 
-def CLIInput(tekst):
+
+def CLIInput(tekst: str) -> str:
     try:
-        ret = raw_input(tekst)
+        ret = input(tekst)
     except EOFError:
         return CLIInput(tekst)
     except KeyboardInterrupt:
-        import sys
-        print
+        print()
         sys.exit(1)
     else:
-        return unicode(ret, CLIenkoding())
+        return ret

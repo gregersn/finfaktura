@@ -3,12 +3,12 @@
 
 import smtplib, logging
 
-smtpserver = raw_input('smtp server (smtp.gmail.com): ')
+smtpserver = input('smtp server (smtp.gmail.com): ')
 if not smtpserver: smtpserver = 'smtp.gmail.com'
-smtpport = raw_input('smtp port (587): ')
+smtpport = input('smtp port (587): ')
 if not smtpport: smtpport = 587
-brukernavn = raw_input('brukernavn: ')
-passord = raw_input('passord: ')
+brukernavn = input('brukernavn: ')
+passord = input('passord: ')
 
 s = smtplib.SMTP()
 s.set_debuglevel(3)    
@@ -18,10 +18,11 @@ try:
     s.starttls()                         
     s.ehlo()                             
     s.login(brukernavn, passord)
-    print "HURRA"
-except Exception, (e):
+    print("HURRA")
+except Exception as xxx_todo_changeme:
+    (e) = xxx_todo_changeme
     logging.exception(e)
-    print "HUFFDA"
+    print("HUFFDA")
 s.close()
 
 

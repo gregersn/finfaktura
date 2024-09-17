@@ -1,5 +1,4 @@
-#!/usr/bin/python -d
-# -*-*- coding:utf8 -*-*-
+#!/usr/bin/env python3 -d
 ###########################################################################
 #    Copyright (C) 2005-2008 Håvard Gulldahl
 #    <havard@lurtgjort.no>
@@ -8,19 +7,52 @@
 #
 # $Id$
 ###########################################################################
-
-class FakturaFeil(Exception): pass
-class KundeFeil(Exception): pass
-class DBKorruptFeil(Exception): pass
-class DBGammelFeil(Exception): pass
-class DBNyFeil(Exception): pass
-class DBTomFeil(Exception): pass
-class DBVersjonFeil(Exception): pass
-class FirmainfoFeil(Exception): pass
-class SikkerhetskopiFeil(Exception): pass
-class PDFFeil(Exception): pass
-class RessurserManglerFeil(Exception): pass
-class InstallasjonsFeil(Exception): pass
+"""Exceptions for Invoice."""
 
 
+class FakturaFeil(Exception):
+    """Error in invoice."""
 
+
+class KundeFeil(Exception):
+    """Error with customer."""
+
+
+class DBKorruptFeil(Exception):
+    """Database corrupt."""
+
+
+class DBGammelFeil(Exception):
+    """Database is outdated."""
+
+
+class DBNyFeil(Exception):
+    """Database is too new."""
+
+
+class DBTomFeil(Exception):
+    """Database is empty."""
+
+
+class DBVersjonFeil(Exception):
+    """Database version is wrong."""
+
+
+class FirmainfoFeil(Exception):
+    """Error in information about company."""
+
+
+class SikkerhetskopiFeil(Exception):
+    """Error in backup."""
+
+
+class PDFFeil(Exception):
+    """Error in PDF."""
+
+
+class RessurserManglerFeil(Exception):
+    """Resource is missing."""
+
+
+class InstallasjonsFeil(Exception):
+    """Installation error."""
